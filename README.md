@@ -1,1 +1,1 @@
-# smi_project
+# SMI Project
