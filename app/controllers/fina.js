@@ -9,6 +9,45 @@ options.password = 'integrity01'
 options.lowercase_keys = false // set to true to lowercase keys
 options.role = null // default
 options.pageSize = 4096 // default when creating database
+options.charset = 'utf8'
+const {
+  SMIModels: { User },
+} = require('../daos')
+const q = require('q') // promises lib
+let db
+const connectToDB = (acfg) => {
+  var def = q.defer()
+
+  Firebird.attach(acfg, function (err, db) {
+    err ? def.reject(err) : def.resolve(db)
+  })
+  return def.promise
+}
+
+const disconnectFromDB = () => {
+  db.detach(function () {
+    console.log('database detached')
+  })
+}
+
+const QueryToDB = async (sql, param = []) => {
+  var def = q.defer()
+
+  connectToDB(options).then(
+    // success
+    function (dbconn) {
+      db = dbconn
+      db.query(sql, param, function (err, rs) {
+        err ? def.reject(err) : def.resolve(rs)
+      })
+    },
+    // fail
+    function (err) {
+      console.log(err)
+    }
+  )
+  return def.promise
+}
 
 const CreateSO = (req, res, next) => {
   Firebird.attach(options, (err, db) => {
@@ -79,7 +118,73 @@ const SyncMasterItem = (req, res, next) => {
   }
 }
 
+const SyncUser = async () => {
+  try {
+    const limit = 2 //default will set 200
+    let queryUser = `SELECT count(*) FROM USERS r`
+    const [{ COUNT }] = await QueryToDB(queryUser)
+    queryUser = `SELECT FIRST ? SKIP ? r.userId, r.userName, r.userLevel, r.fullName FROM USERS r`
+    let countNewUser = 0
+    for (let index = 0; index < Math.ceil(COUNT / limit); index++) {
+      const userFina = await QueryToDB(queryUser, [limit, index])
+      const ids = userFina.map((user) => user.USERID)
+      const existUser = await User.find({ userId: { $in: ids } }).lean()
+      const userNeedCreated = userFina.filter(
+        (fina) => !existUser.find((user) => user.userId === fina.USERID)
+      )
+      const CRUD = {
+        create: true,
+        edit: true,
+        delete: true,
+        print: true,
+      }
+      const doPromises = []
+      userNeedCreated.map(async (user) => {
+        let authorizeUser = {}
+        if (user.USERLEVEL === 0) {
+          authorizeUser = {
+            item: CRUD,
+            itemCategory: CRUD,
+            customer: CRUD,
+            custCategory: CRUD,
+            price: CRUD,
+            sales: CRUD,
+            user: CRUD,
+            itemStock: CRUD,
+            quotation: CRUD,
+            priceApproval: CRUD,
+            salesOrder: CRUD,
+            importExcel: CRUD,
+          }
+        } else if (user.USERLEVEL === 2) {
+          authorizeUser.quotation = CRUD
+          authorizeUser.salesOrder = CRUD
+        }
+        const newData = {
+          userName: user.USERNAME,
+          encryptedPassword: user.USERNAME,
+          userId: user.USERID,
+          profile: {
+            fullName: user.FULLNAME,
+            userLevel: user.USERLEVEL,
+          },
+          authorize: authorizeUser,
+        }
+        const newUser = new User(newData).save()
+        doPromises.push(newUser)
+        countNewUser += 1
+      })
+      await Promise.all(doPromises)
+    }
+
+    disconnectFromDB()
+    return { total: COUNT, newUser: countNewUser, message: 'Success' }
+  } catch (error) {
+    throw error
+  }
+}
 module.exports = {
   CreateSO,
   SyncMasterItem,
+  SyncUser,
 }

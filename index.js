@@ -14,8 +14,6 @@ const appRoutes = require('./app/routes')
 const app = express()
 const { ApolloServer } = require('apollo-server-express')
 const jwt = require('express-jwt')
-const typeDefs = require('./graphql/schema')
-const resolvers = require('./graphql/resolver')
 const { PORT, JWT_SECRET } = process.env
 const auth = jwt({
   secret: JWT_SECRET,
@@ -46,10 +44,9 @@ app.get('/', (req, res) => {
   return res.end()
 })
 
-
+const schema = require('./graphql')
 const server = new ApolloServer({
-  typeDefs,
-  resolvers,
+  schema,
   playground: {
     endpoint: '/graphql',
   },

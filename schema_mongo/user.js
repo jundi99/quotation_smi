@@ -3,18 +3,24 @@ const bcrypt = require('bcryptjs')
 const mongoose = require('mongoose')
 const { Schema } = mongoose
 const $NAME = 'User'
+const CRUD = {
+  create: {type: Boolean, default: false},
+  edit: {type: Boolean, default: false},
+  delete: {type: Boolean, default: false},
+  print: {type: Boolean, default: false},
+}
 const $SCHEMA = new Schema(
   {
-    encrypted_password: {
+    encryptedPassword: {
       type: String,
     },
     userName: String,
+    userId: Number,    
     profile: {
       fullName: String,
-      userId: Number,
-      UserLevel: Number,
+      userLevel: Number,
     },
-    ip_history: [
+    ipHistory: [
       {
         device_type: {
           type: String,
@@ -25,6 +31,20 @@ const $SCHEMA = new Schema(
         date: Date,
       },
     ],
+    authorize: {
+      item: CRUD,
+      itemCategory: CRUD,
+      customer: CRUD,
+      custCategory: CRUD,
+      price: CRUD,
+      sales: CRUD,
+      user: CRUD,
+      itemStock: CRUD,
+      quotation: CRUD,
+      priceApproval: CRUD,
+      salesOrder: CRUD,
+      importExcel: CRUD,
+    },
   },
   {
     timestamps: {
@@ -40,28 +60,28 @@ $SCHEMA.plugin(require('mongoose-delete'), {
 })
 
 $SCHEMA.pre('save', function presave(fun) {
-  if (!this.isModified('encrypted_password')) {
+  if (!this.isModified('encryptedPassword')) {
     fun()
   }
   bcrypt.genSalt(10, (err, salt) => {
     if (err) {
       fun(err)
     }
-    bcrypt.hash(this.encrypted_password, salt, (err, hash) => {
+    bcrypt.hash(this.encryptedPassword, salt, (err, hash) => {
       if (err) {
         fun(err)
       }
-      this.encrypted_password = hash
+      this.encryptedPassword = hash
       fun()
     })
   })
 })
 
 $SCHEMA.methods.comparePassword = function comparePassword(insertedPassword) {
-  const { encrypted_password } = this
+  const { encryptedPassword } = this
 
   return new Promise((resolve) => {
-    bcrypt.compare(insertedPassword, encrypted_password, (err, isMatch) => {
+    bcrypt.compare(insertedPassword, encryptedPassword, (err, isMatch) => {
       if (err) {
         isMatch = false
       }
@@ -72,7 +92,7 @@ $SCHEMA.methods.comparePassword = function comparePassword(insertedPassword) {
         .digest('hex')
 
       if (!isMatch) {
-        if (hashPassword === encrypted_password) {
+        if (hashPassword === encryptedPassword) {
           return resolve(true)
         }
 
@@ -102,7 +122,7 @@ $SCHEMA.statics.updateBrandPassword = function updateBrandPassword(
           if (err) {
             reject(err)
           }
-          user.encrypted_password = hash
+          user.encryptedPassword = hash
         })
       })
 

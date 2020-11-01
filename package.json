@@ -25,6 +25,7 @@
     "express-useragent": "^1.0.15",
     "formidable": "^1.2.2",
     "graphql": "^15.3.0",
+    "graphql-tools": "^6.0.15",
     "helmet": "^4.1.1",
     "http-errors": "~1.6.3",
     "jsonwebtoken": "^8.5.1",
@@ -33,6 +34,7 @@
     "mongoose-delete": "^0.5.2",
     "morgan": "~1.9.1",
     "node-firebird": "^0.9.8",
+    "q": "^1.5.1",
     "read-excel-file": "^4.0.7"
   },
   "devDependencies": {
