@@ -6,10 +6,8 @@ if (NODE_ENV === 'test') {
   if (!TEST_MONGO_URI) {
     error('TEST_MONGO_URI required for test.')
   }
-} else {
-  if (!SMI_MONGO_URI) {
-    error('SMI_MONGO_URI env is required.')
-  }
+} else if (!SMI_MONGO_URI) {
+  error('SMI_MONGO_URI env is required.')
 }
 
 mongoose.set('debug', ENABLE_DB_LOG === 'true')
@@ -18,7 +16,7 @@ mongoose.Promise = Promise
 /**
  * Connect
  * @param {*} object { url, name, config }
- * @returns {*} connections
+ * @return {*} connections
  */
 const connect = ({ url, name, config }) => {
   const newConnection = mongoose.createConnection(url, config)

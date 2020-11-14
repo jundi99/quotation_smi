@@ -3,14 +3,14 @@ const {
 } = require('../../app/daos')
 // const bcrypt = require('bcrypt')
 const jsonwebtoken = require('jsonwebtoken')
-const JWT_SECRET = process.env.JWT_SECRET
-const StandardError = require('../../utils/standard_error')
+const { JWT_SECRET } = process.env
+// const StandardError = require('../../utils/standard_error')
 
 const resolvers = {
   Query: {
-    async current(_, args, { user }) {
+    current(_, args, { user }) {
       if (user) {
-        return await User.findOne({ _id: user.id }).lean()
+        return User.findOne({ _id: user.id }).lean()
       }
       throw new Error('Maaf, anda tidak memiliki akses!')
     },
@@ -41,7 +41,7 @@ const resolvers = {
 
       if (!user) {
         throw new Error(
-          'User ini tidak ada. Harap pastikan untuk mengetik login yang benar.'
+          'User ini tidak ada. Harap pastikan untuk mengetik login yang benar.',
         )
       }
 
@@ -57,7 +57,7 @@ const resolvers = {
           JWT_SECRET,
           {
             expiresIn: '30d',
-          }
+          },
         ),
         current: user,
       }

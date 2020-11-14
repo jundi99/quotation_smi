@@ -44,13 +44,17 @@ module.exports = `
     ${module.exports.User}
   }
 
-  type SyncUserResponse {
+  type SyncResponse {
     total: Int
-    newUser: Int
+    newData: Int
     message: String
   }
 
   type Mutation {
-    SyncUser: SyncUserResponse
+    SyncUser: SyncResponse
+    SyncItem: SyncResponse
+    SyncItemCategory: SyncResponse
+    SyncCustomer: SyncResponse
+    SyncCustType: SyncResponse
   }
 `

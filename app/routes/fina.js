@@ -4,7 +4,7 @@ const fina = require('../controllers/fina')
 module.exports = (express) =>
   new express.Router()
     // .use('*', ReqUserFromToken)
-    .get('/', (req, res, next) => {
+    .get('/', (req, res) => {
       res.send('respond with a resource')
     })
     .get('/create-so', fina.CreateSO)

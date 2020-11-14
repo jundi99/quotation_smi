@@ -36,11 +36,12 @@ app.use(auth)
 app.get('/', (req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/html' })
   res.write(
-    '<form action="upload/item" method="post" enctype="multipart/form-data">'
+    '<form action="upload/item" method="post" enctype="multipart/form-data">',
   )
   res.write('<input type="file" name="filetoupload"><br>')
   res.write('<input type="submit">')
   res.write('</form>')
+
   return res.end()
 })
 
@@ -51,11 +52,16 @@ const server = new ApolloServer({
     endpoint: '/graphql',
   },
   context: ({ req }) => {
-    const user = req.headers.user
-      ? JSON.parse(req.headers.user)
-      : req.user
-      ? req.user
-      : null
+    let user = null
+
+    if (req.headers.user) {
+      user = JSON.parse(req.headers.user)
+    } else if (req.user) {
+      const { user: reqUser } = req
+
+      user = reqUser
+    }
+
     return { user }
   },
   // context: ({ req, connection, res }) => {
@@ -101,6 +107,7 @@ const server = new ApolloServer({
         message: oriError.message,
         stack: oriError.stack,
       }
+
       return errorDetail
     } catch (e) {
       return error
@@ -109,17 +116,17 @@ const server = new ApolloServer({
 })
 
 server.applyMiddleware({ app })
-app.use(helmet()) //if turn on this graphql will stuck on loading screen
+app.use(helmet()) // if turn on this graphql will stuck on loading screen
 app.listen(PORT || 3000, () => {
-  console.log('The server started on port ' + PORT)
+  log(`The server started on port ${PORT}`)
 })
 
 process.on('SIGINT', async () => {
   log('SIGINT signal received on ', new Date())
 
-  // Stops the server from accepting new connections and finishes existing connections.
+  // Stops the server from accepting new connections and
+  // finishes existing connections.
   await server.stop()
   log('🚀  Server closed on ', new Date())
-  process.exit()
+  process.exit(0)
 })
-

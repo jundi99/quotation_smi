@@ -1,6 +1,7 @@
 const { DB_FINA, DB_FINA_PORT, DB_FINA_HOST } = process.env
 const Firebird = require('node-firebird')
 const options = {}
+
 options.host = DB_FINA_HOST
 options.port = DB_FINA_PORT
 options.database = DB_FINA
@@ -11,63 +12,76 @@ options.role = null // default
 options.pageSize = 4096 // default when creating database
 options.charset = 'utf8'
 const {
-  SMIModels: { User },
+  SMIModels: { User, Item, ItemCategory, CustomerType },
 } = require('../daos')
+const { log } = console
 const q = require('q') // promises lib
 let db
 const connectToDB = (acfg) => {
-  var def = q.defer()
+  const def = q.defer()
 
-  Firebird.attach(acfg, function (err, db) {
+  Firebird.attach(acfg, (err, db) => {
     err ? def.reject(err) : def.resolve(db)
   })
+
   return def.promise
 }
 
 const disconnectFromDB = () => {
-  db.detach(function () {
-    console.log('database detached')
+  db.detach(() => {
+    log('database detached')
   })
 }
 
-const QueryToDB = async (sql, param = []) => {
-  var def = q.defer()
+const QueryToDB = (sql, param = []) => {
+  const def = q.defer()
 
   connectToDB(options).then(
     // success
-    function (dbconn) {
+    (dbconn) => {
       db = dbconn
-      db.query(sql, param, function (err, rs) {
+      db.query(sql, param, (err, rs) => {
         err ? def.reject(err) : def.resolve(rs)
       })
     },
     // fail
-    function (err) {
-      console.log(err)
-    }
+    (err) => {
+      log(err)
+    },
   )
+
   return def.promise
 }
 
-const CreateSO = (req, res, next) => {
+const CreateSO = (req, res) => {
   Firebird.attach(options, (err, db) => {
-    if (err) throw err
+    if (err) {
+      throw err
+    }
 
     db.query('select SOID from GETSOID', [], (err, result) => {
+      if (err) {
+        throw err
+      }
       const [data] = result
       const { SOID } = data
 
       db.query(
-        'INSERT INTO SO (SOID, SONO, ESTSHIPDATE, INVAMOUNT) VALUES(?, ?, ?, ?) returning SOID',
+        `INSERT INTO SO (SOID, SONO, ESTSHIPDATE, INVAMOUNT) 
+        VALUES(?, ?, ?, ?) returning SOID`,
         [SOID, 'A7', new Date(), 10000],
         (err, { SOID }) => {
-          console.log(err)
-          console.log(SOID)
+          if (err) {
+            throw err
+          }
           db.query('SELECT * FROM SO WHERE SOID=?', [SOID], (err, result) => {
-            console.log(result)
+            if (err) {
+              throw err
+            }
+            log(result)
             db.detach()
           })
-        }
+        },
       )
       // db.transaction(Firebird.ISOLATION_READ_COMMITED, function(err, transaction) {
       //     transaction.query(
@@ -92,99 +106,328 @@ const CreateSO = (req, res, next) => {
   })
 }
 
-const SyncMasterItem = (req, res, next) => {
-  try {
-    Firebird.attach(options, (err, db) => {
-      if (err) throw err
+const DoProccessData = async ({
+  limit,
+  sumData,
+  Collection,
+  filterDataCreated,
+  newDataObj,
+}) => {
+  let countNewData = 0
 
-      db.query(
-        `SELECT i.ITEMNO, i.ITEMDESCRIPTION, i.UNIT1,
-      i.RESERVED1, i.RESERVED2, i.RESERVED3, i.RESERVED4,
-      i.RESERVED5, i.RESERVED6, i.RESERVED7, i.RESERVED8,
-      i.RESERVED9, i.RESERVED10, i.MINIMUMQTY, i.QUANTITY,
-      i.UNITPRICE, i.CATEGORYID, i.NOTES
-      FROM ITEM i`,
-        [],
-        (err, result) => {
-          const [data] = result
-          const { SOID } = data
+  const promises = []
+  const dataNeedCreated = async (skip) => {
+    const data = await filterDataCreated(skip)
 
-          //masukkan dengan replace ke db mongo
-        }
-      )
+    countNewData += data.length
+
+    return data.map(async (data) => {
+      const newData = await newDataObj(data)
+
+      return new Collection(newData).save()
     })
-  } catch (error) {
-    next(error)
   }
+
+  for (let index = 0; index < Math.ceil(sumData / limit); index++) {
+    const skip = limit * (index + 1) - limit
+
+    promises.push(dataNeedCreated(skip))
+  }
+
+  await Promise.all(promises)
+  disconnectFromDB()
+
+  return { total: sumData, newData: countNewData, message: 'Success' }
 }
 
-const SyncUser = async () => {
-  try {
-    const limit = 2 //default will set 200
-    let queryUser = `SELECT count(*) FROM USERS r`
-    const [{ COUNT }] = await QueryToDB(queryUser)
-    queryUser = `SELECT FIRST ? SKIP ? r.userId, r.userName, r.userLevel, r.fullName FROM USERS r`
-    let countNewUser = 0
-    for (let index = 0; index < Math.ceil(COUNT / limit); index++) {
-      const userFina = await QueryToDB(queryUser, [limit, index])
-      const ids = userFina.map((user) => user.USERID)
-      const existUser = await User.find({ userId: { $in: ids } }).lean()
-      const userNeedCreated = userFina.filter(
-        (fina) => !existUser.find((user) => user.userId === fina.USERID)
-      )
-      const CRUD = {
-        create: true,
-        edit: true,
-        delete: true,
-        print: true,
-      }
-      const doPromises = []
-      userNeedCreated.map(async (user) => {
-        let authorizeUser = {}
-        if (user.USERLEVEL === 0) {
-          authorizeUser = {
-            item: CRUD,
-            itemCategory: CRUD,
-            customer: CRUD,
-            custCategory: CRUD,
-            price: CRUD,
-            sales: CRUD,
-            user: CRUD,
-            itemStock: CRUD,
-            quotation: CRUD,
-            priceApproval: CRUD,
-            salesOrder: CRUD,
-            importExcel: CRUD,
-          }
-        } else if (user.USERLEVEL === 2) {
-          authorizeUser.quotation = CRUD
-          authorizeUser.salesOrder = CRUD
-        }
-        const newData = {
-          userName: user.USERNAME,
-          encryptedPassword: user.USERNAME,
-          userId: user.USERID,
-          profile: {
-            fullName: user.FULLNAME,
-            userLevel: user.USERLEVEL,
-          },
-          authorize: authorizeUser,
-        }
-        const newUser = new User(newData).save()
-        doPromises.push(newUser)
-        countNewUser += 1
-      })
-      await Promise.all(doPromises)
+const SyncMasterItemCategory = async () => {
+  let query = `SELECT count(*) FROM ITEMCATEGORY`
+  const [{ COUNT: sumData }] = await QueryToDB(query)
+
+  query = `SELECT ic.CATEGORYID as ID, ic.NAME
+  FROM ITEMCATEGORY ic`
+
+  const findById = (ids) => {
+    const findId = { categoryId: { $in: ids } }
+
+    return findId
+  }
+  const compareId = (data, fina) => data.categoryId === fina.ID
+  const newItem = (data) => {
+    const newData = {
+      categoryId: data.ID,
+      name: data.NAME,
     }
 
-    disconnectFromDB()
-    return { total: COUNT, newUser: countNewUser, message: 'Success' }
-  } catch (error) {
-    throw error
+    return newData
+  }
+
+  const dataFina = await QueryToDB(query)
+  const ids = dataFina.map((data) => data.ID)
+  const existData = await ItemCategory.find(findById(ids)).lean()
+  const dataNeedCreated = dataFina.filter(
+    (fina) => !existData.find((data) => compareId(data, fina)),
+  )
+
+  const doPromises = []
+
+  dataNeedCreated.map((data) => {
+    const newData = newItem(data)
+    const dataSaved = new ItemCategory(newData).save()
+
+    doPromises.push(dataSaved)
+
+    return true
+  })
+  await Promise.all(doPromises)
+
+  disconnectFromDB()
+
+  return {
+    total: sumData,
+    newData: dataNeedCreated.length,
+    message: 'Success',
   }
 }
+
+const newItem = async (data) => {
+  let category = {}
+
+  if (data.CATEGORYID) {
+    category = await ItemCategory.findOne(
+      { categoryId: data.CATEGORYID },
+      { _id: 1 },
+    ).lean()
+  }
+
+  const newData = {
+    itemNo: data.ID,
+    name: data.ITEMDESCRIPTION,
+    unit: data.UNIT1,
+    reserved: {
+      item1: data.RESERVED1,
+      item2: data.RESERVED2,
+      item3: data.RESERVED3,
+      item4: data.RESERVED4,
+      item5: data.RESERVED5,
+      item6: data.RESERVED6,
+      item7: data.RESERVED7,
+      item8: data.RESERVED8,
+      item9: data.RESERVED9,
+      item10: data.RESERVED10,
+    },
+    price: {
+      level1: data.UNITPRICE,
+      level2: data.UNITPRICE2,
+      level3: data.UNITPRICE3,
+      level4: data.UNITPRICE4,
+      level5: data.UNITPRICE5,
+    },
+    quantity: data.QUANTITY,
+    note: data.NOTES,
+    weigth: data.WEIGTH,
+    dimension: {
+      width: data.DIMWIDTH,
+      heigth: data.DIMHEIGHT,
+      depth: data.DIMDEPTH,
+    },
+    category: category._id,
+
+    stockSMI: 0,
+  }
+
+  return newData
+}
+
+const SyncMasterItem = async () => {
+  const limit = 2 // default will set 200
+  let query = `SELECT count(*) FROM ITEM i WHERE i.SUSPENDED=0`
+  const [{ COUNT: sumData }] = await QueryToDB(query)
+
+  query = `SELECT FIRST ? SKIP ? i.ITEMNO as ID, 
+  i.ITEMDESCRIPTION, i.UNIT1,
+  i.RESERVED1, i.RESERVED2, i.RESERVED3, i.RESERVED4,
+  i.RESERVED5, i.RESERVED6, i.RESERVED7, i.RESERVED8,
+  i.RESERVED9, i.RESERVED10, i.UNITPRICE, i.UNITPRICE2, 
+  i.UNITPRICE3, i.UNITPRICE4, i.UNITPRICE5,
+  i.QUANTITY, i.CATEGORYID, i.NOTES, i.DIMDEPTH, 
+  i.DIMHEIGHT, i.DIMWIDTH, i.WEIGHT
+  FROM ITEM i WHERE i.SUSPENDED=0 ORDER BY ITEMNO`
+
+  const filterDataCreated = async (skip) => {
+    const dataFina = await QueryToDB(query, [limit, skip])
+    const ids = dataFina.map((data) => data.ID)
+    const existData = await Item.find({ itemNo: { $in: ids } }).lean()
+
+    return dataFina.filter(
+      (fina) => !existData.find((data) => data.itemNo === String(fina.ID)),
+    )
+  }
+
+  return DoProccessData({
+    limit,
+    sumData,
+    Collection: Item,
+    filterDataCreated,
+    newDataObj: newItem,
+  })
+}
+
+const CRUD = {
+  create: true,
+  edit: true,
+  delete: true,
+  print: true,
+}
+const newUser = (user) => {
+  let authorizeUser = {}
+
+  if (user.USERLEVEL === 0) {
+    authorizeUser = {
+      item: CRUD,
+      itemCategory: CRUD,
+      customer: CRUD,
+      custCategory: CRUD,
+      price: CRUD,
+      sales: CRUD,
+      user: CRUD,
+      itemStock: CRUD,
+      quotation: CRUD,
+      priceApproval: CRUD,
+      salesOrder: CRUD,
+      importExcel: CRUD,
+    }
+  } else if (user.USERLEVEL === 2) {
+    authorizeUser.quotation = CRUD
+    authorizeUser.salesOrder = CRUD
+  }
+  const newData = {
+    userName: user.USERNAME,
+    encryptedPassword: user.USERNAME,
+    userId: user.ID,
+    profile: {
+      fullName: user.FULLNAME,
+      userLevel: user.USERLEVEL,
+    },
+    authorize: authorizeUser,
+  }
+
+  return newData
+}
+
+const SyncMasterUser = async () => {
+  const limit = 2 // default will set 200
+  let query = `SELECT count(*) FROM USERS r`
+  const [{ COUNT: sumData }] = await QueryToDB(query)
+
+  query = `SELECT FIRST ? SKIP ? r.userId as ID, 
+  r.userName, r.userLevel, r.fullName FROM USERS r
+  ORDER BY USERID`
+
+  const filterDataCreated = async (skip) => {
+    const dataFina = await QueryToDB(query, [limit, skip])
+    const ids = dataFina.map((data) => data.ID)
+    const existData = await User.find({ userId: { $in: ids } }).lean()
+    const filtered = dataFina.filter(
+      (fina) => !existData.find((data) => data.userId === fina.ID),
+    )
+
+    return filtered
+  }
+
+  return DoProccessData({
+    limit,
+    sumData,
+    Collection: User,
+    filterDataCreated,
+    newDataObj: newUser,
+  })
+}
+
+const SyncMasterCustomer = async () => {
+  const limit = 2 // default will set 200
+  let query = `SELECT count(*) FROM USERS r`
+  const [{ COUNT: sumData }] = await QueryToDB(query)
+
+  query = `SELECT FIRST ? SKIP ? r.userId as ID, 
+  r.userName, r.userLevel, r.fullName FROM USERS r
+  ORDER BY USERID`
+
+  const filterDataCreated = async (skip) => {
+    const dataFina = await QueryToDB(query, [limit, skip])
+    const ids = dataFina.map((data) => data.ID)
+    const existData = await User.find({ userId: { $in: ids } }).lean()
+    const filtered = dataFina.filter(
+      (fina) => !existData.find((data) => data.userId === fina.ID),
+    )
+
+    return filtered
+  }
+
+  return DoProccessData({
+    limit,
+    sumData,
+    Collection: User,
+    filterDataCreated,
+    newDataObj: newUser,
+  })
+}
+
+const SyncMasterCustType = async () => {
+  let query = `SELECT count(*) FROM CUSTTYPE`
+  const [{ COUNT: sumData }] = await QueryToDB(query)
+
+  query = `SELECT ct.CUSTOMERTYPEID as ID, ct.TYPENAME
+  FROM CUSTTYPE ct`
+
+  const findById = (ids) => {
+    const findId = { typeId: { $in: ids } }
+
+    return findId
+  }
+  const compareId = (data, fina) => data.typeId === fina.ID
+  const newCustType = (data) => {
+    const newData = {
+      typeId: data.ID,
+      name: data.TYPENAME,
+    }
+
+    return newData
+  }
+
+  const dataFina = await QueryToDB(query)
+  const ids = dataFina.map((data) => data.ID)
+  const existData = await CustomerType.find(findById(ids)).lean()
+  const dataNeedCreated = dataFina.filter(
+    (fina) => !existData.find((data) => compareId(data, fina)),
+  )
+
+  const doPromises = []
+
+  dataNeedCreated.map((data) => {
+    const newData = newCustType(data)
+    const dataSaved = new CustomerType(newData).save()
+
+    doPromises.push(dataSaved)
+
+    return true
+  })
+  await Promise.all(doPromises)
+
+  disconnectFromDB()
+
+  return {
+    total: sumData,
+    newData: dataNeedCreated.length,
+    message: 'Success',
+  }
+}
+
 module.exports = {
   CreateSO,
   SyncMasterItem,
-  SyncUser,
+  SyncMasterUser,
+  SyncMasterItemCategory,
+  SyncMasterCustomer,
+  SyncMasterCustType,
 }

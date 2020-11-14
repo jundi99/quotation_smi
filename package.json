@@ -9,6 +9,12 @@
     "checklint": "npx eslint -f table .",
     "codeformat": "npx prettier --write ."
   },
+  "prettier": "./prettier",
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run codeformat && npm run checklint"
+    }
+  },
   "dependencies": {
     "apollo-server-express": "^2.18.2",
     "bcrypt": "^5.0.0",
@@ -31,6 +37,7 @@
     "jsonwebtoken": "^8.5.1",
     "mongodb": "^3.6.2",
     "mongoose": "^5.10.10",
+    "mongoose-deep-populate": "^3.2.0",
     "mongoose-delete": "^0.5.2",
     "morgan": "~1.9.1",
     "node-firebird": "^0.9.8",
@@ -39,7 +46,7 @@
   },
   "devDependencies": {
     "eslint": "^7.11.0",
-    "eslint-config-google": "^0.14.0",
+    "husky": "^4.3.0",
     "prettier": "2.1.2"
   }
 }

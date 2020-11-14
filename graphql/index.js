@@ -17,7 +17,7 @@ const resolvers = mergeResolvers(
     }
 
     return key
-  })
+  }),
 )
 
 const schema = makeExecutableSchema({

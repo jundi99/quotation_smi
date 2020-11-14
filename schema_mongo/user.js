@@ -1,13 +1,14 @@
+/* eslint-disable no-invalid-this */
 const crypto = require('crypto')
 const bcrypt = require('bcryptjs')
 const mongoose = require('mongoose')
 const { Schema } = mongoose
 const $NAME = 'User'
 const CRUD = {
-  create: {type: Boolean, default: false},
-  edit: {type: Boolean, default: false},
-  delete: {type: Boolean, default: false},
-  print: {type: Boolean, default: false},
+  create: { type: Boolean, default: false },
+  edit: { type: Boolean, default: false },
+  delete: { type: Boolean, default: false },
+  print: { type: Boolean, default: false },
 }
 const $SCHEMA = new Schema(
   {
@@ -15,7 +16,7 @@ const $SCHEMA = new Schema(
       type: String,
     },
     userName: String,
-    userId: Number,    
+    userId: Number,
     profile: {
       fullName: String,
       userLevel: Number,
@@ -52,7 +53,7 @@ const $SCHEMA = new Schema(
       updatedAt: 'updated_at',
     },
     read: 'secondary',
-  }
+  },
 )
 
 $SCHEMA.plugin(require('mongoose-delete'), {
@@ -105,20 +106,20 @@ $SCHEMA.methods.comparePassword = function comparePassword(insertedPassword) {
 }
 
 $SCHEMA.statics.updateBrandPassword = function updateBrandPassword(
-  user_id,
-  new_password
+  userId,
+  newPassword,
 ) {
-  user_id = new_password.id
+  userId = newPassword.id
 
   return new Promise(async (resolve, reject) => {
     try {
-      const user = await this.model('User').findById(user_id).lean()
+      const user = await this.model('User').findById(userId).lean()
 
       bcrypt.genSalt(10, (err, salt) => {
         if (err) {
           reject(err)
         }
-        bcrypt.hash(this.new_password, salt, (err, hash) => {
+        bcrypt.hash(this.newPassword, salt, (err, hash) => {
           if (err) {
             reject(err)
           }
