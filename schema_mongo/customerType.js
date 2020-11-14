@@ -3,7 +3,7 @@ const { Schema } = mongoose
 const SchemaObject = new Schema(
   {
     typeId: Number,
-    name: {type: String, required: true},
+    name: { type: String, required: true },
   },
   { timestamps: true },
 )
