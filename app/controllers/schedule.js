@@ -24,7 +24,11 @@ const UpdateTimerStock = async (minutes) => {
   clearInterval(timerId)
   const timer = minutes * 1000 * 60
 
-  await Schedule.findOneAndUpdate({ name: STOCK }, { name: STOCK, timer }, { upsert: true })
+  await Schedule.findOneAndUpdate(
+    { name: STOCK },
+    { name: STOCK, timer },
+    { upsert: true },
+  )
   await autoUpdateStock()
 
   return { message: 'OK' }

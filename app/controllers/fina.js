@@ -12,7 +12,15 @@ options.role = null // default
 options.pageSize = 4096 // default when creating database
 options.charset = 'utf8'
 const {
-  SMIModels: { User, Item, ItemCategory, CustomerType, Customer, Salesman, Term },
+  SMIModels: {
+    User,
+    Item,
+    ItemCategory,
+    CustomerType,
+    Customer,
+    Salesman,
+    Term,
+  },
 } = require('../daos')
 const { log } = console
 const q = require('q') // promises lib
@@ -345,7 +353,10 @@ const SyncMasterUser = async () => {
 }
 
 const newCustomer = async (customer) => {
-  const { _id: customerTypeId } = await CustomerType.findOne({ typeId: customer.CUSTOMERTYPEID }, { _id: 1 })
+  const { _id: customerTypeId } = await CustomerType.findOne(
+    { typeId: customer.CUSTOMERTYPEID },
+    { _id: 1 },
+  )
   const newData = {
     customerId: customer.ID,
     personNo: customer.PERSONNO,

@@ -35,7 +35,7 @@ const XLSItem = (req, res, next) => {
             return new Item(data).save()
           }
 
-          rows.map(row => {
+          rows.map((row) => {
             const data = {
               itemNo: row[0],
               name: row[1],
