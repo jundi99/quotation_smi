@@ -12,7 +12,7 @@ const SchemaObject = new Schema(
       city: String,
       stateProve: String,
       zipCode: String,
-      contry: String,
+      country: String,
     },
     contact: String,
     phone: String,

@@ -1,4 +1,7 @@
 const { log, table } = console
+const {
+  SMIModels: { Item },
+} = require('../daos')
 const XLSItem = (req, res, next) => {
   try {
     const formidable = require('formidable')
@@ -19,6 +22,31 @@ const XLSItem = (req, res, next) => {
         const xlsxFile = require('read-excel-file/node')
 
         xlsxFile(`./public/file/${files.filetoupload.name}`).then((rows) => {
+          rows.shift()
+          const doSyncUpload = async (data) => {
+            const { itemNo, stockSupplier } = data
+
+            const isItemExist = await Item.findOne({ itemNo }).lean()
+
+            if (isItemExist) {
+              return Item.updateOne({ itemNo }, { stockSupplier })
+            }
+
+            return new Item(data).save()
+          }
+
+          rows.map(row => {
+            const data = {
+              itemNo: row[0],
+              name: row[1],
+              unit: row[2],
+              stockSupplier: row[3],
+            }
+
+            doSyncUpload(data)
+
+            return true
+          })
           log(rows)
           table(rows)
         })

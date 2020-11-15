@@ -2,9 +2,8 @@ const mongoose = require('mongoose')
 const { Schema } = mongoose
 const SchemaObject = new Schema(
   {
-    termId: Number,
     name: String,
-    note: String,
+    timer: Number,
   },
   { timestamps: true },
 )
@@ -15,6 +14,6 @@ SchemaObject.plugin(require('mongoose-delete'), {
 })
 
 module.exports = {
-  SchemaName: 'Term',
+  SchemaName: 'Schedule',
   SchemaObject,
 }

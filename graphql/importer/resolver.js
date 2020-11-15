@@ -1,14 +1,5 @@
-const {
-  SMIModels: { User },
-} = require('../../app/daos')
-const StandardError = require('../../utils/standard_error')
 const fina = require('../../app/controllers/fina')
-const ValidateUser = (user) => {
-  if (user) {
-    return User.findOne({ _id: user.id }).lean()
-  }
-  throw new StandardError("Sorry, you're not an authenticated user!")
-}
+const { ValidateUser } = require('../../app/controllers/user')
 
 const resolvers = {
   Mutation: {
@@ -36,6 +27,16 @@ const resolvers = {
       await ValidateUser(user)
 
       return fina.SyncMasterCustType()
+    },
+    async SyncSalesman(_, args, { user }) {
+      await ValidateUser(user)
+
+      return fina.SyncMasterSalesman()
+    },
+    async SyncTerm(_, args, { user }) {
+      await ValidateUser(user)
+
+      return fina.SyncMasterTerm()
     },
   },
 }

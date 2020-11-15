@@ -12,7 +12,7 @@ options.role = null // default
 options.pageSize = 4096 // default when creating database
 options.charset = 'utf8'
 const {
-  SMIModels: { User, Item, ItemCategory, CustomerType },
+  SMIModels: { User, Item, ItemCategory, CustomerType, Customer, Salesman, Term },
 } = require('../daos')
 const { log } = console
 const q = require('q') // promises lib
@@ -344,21 +344,50 @@ const SyncMasterUser = async () => {
   })
 }
 
+const newCustomer = async (customer) => {
+  const { _id: customerTypeId } = await CustomerType.findOne({ typeId: customer.CUSTOMERTYPEID }, { _id: 1 })
+  const newData = {
+    customerId: customer.ID,
+    personNo: customer.PERSONNO,
+    name: customer.NAME,
+    typeId: customerTypeId,
+    address: {
+      addressLine1: customer.ADDRESSLINE1,
+      addressLine2: customer.ADDRESSLINE2,
+      city: customer.CITY,
+      stateProve: customer.STATEPROVE,
+      zipCode: customer.ZIPCODE,
+      country: customer.COUNTRY,
+    },
+    contact: customer.CONTACT,
+    phone: customer.PHONE,
+    email: customer.EMAIL,
+    creditLimit: customer.CREDITLIMIT,
+    note: customer.NOTES,
+    outstandingAR: 0,
+    priceType: [],
+  }
+
+  return newData
+}
+
 const SyncMasterCustomer = async () => {
   const limit = 2 // default will set 200
-  let query = `SELECT count(*) FROM USERS r`
+  let query = `SELECT count(*) FROM PERSONDATA p where p.PersonType=0`
   const [{ COUNT: sumData }] = await QueryToDB(query)
 
-  query = `SELECT FIRST ? SKIP ? r.userId as ID, 
-  r.userName, r.userLevel, r.fullName FROM USERS r
-  ORDER BY USERID`
+  query = `SELECT FIRST ? SKIP ? p.ID, p.PERSONNO, p.NAME, p.CUSTOMERTYPEID,
+  p.ADDRESSLINE1, p.ADDRESSLINE2, p.CITY, p.STATEPROV, p.ZIPCODE,
+  p.COUNTRY, p.CONTACT, p.PHONE, p.EMAIL, p.CREDITLIMIT,
+  p.NOTES from PERSONDATA p
+  where p.PERSONTYPE=0`
 
   const filterDataCreated = async (skip) => {
     const dataFina = await QueryToDB(query, [limit, skip])
     const ids = dataFina.map((data) => data.ID)
-    const existData = await User.find({ userId: { $in: ids } }).lean()
+    const existData = await Customer.find({ customerId: { $in: ids } }).lean()
     const filtered = dataFina.filter(
-      (fina) => !existData.find((data) => data.userId === fina.ID),
+      (fina) => !existData.find((data) => data.customerId === fina.ID),
     )
 
     return filtered
@@ -367,9 +396,9 @@ const SyncMasterCustomer = async () => {
   return DoProccessData({
     limit,
     sumData,
-    Collection: User,
+    Collection: Customer,
     filterDataCreated,
-    newDataObj: newUser,
+    newDataObj: newCustomer,
   })
 }
 
@@ -423,6 +452,106 @@ const SyncMasterCustType = async () => {
   }
 }
 
+const SyncMasterSalesman = async () => {
+  let query = `SELECT count(*) FROM SALESMAN`
+  const [{ COUNT: sumData }] = await QueryToDB(query)
+
+  query = `Select s.SALESMANID as ID, s.FIRSTNAME, s.LASTNAME from SALESMAN s`
+
+  const findById = (ids) => {
+    const findId = { salesmanId: { $in: ids } }
+
+    return findId
+  }
+  const compareId = (data, fina) => data.salesmanId === fina.ID
+  const newSalesman = (data) => {
+    const newData = {
+      salesmanId: data.ID,
+      firstName: data.FIRSTNAME,
+      lastName: data.LASTNAME,
+    }
+
+    return newData
+  }
+
+  const dataFina = await QueryToDB(query)
+  const ids = dataFina.map((data) => data.ID)
+  const existData = await Salesman.find(findById(ids)).lean()
+  const dataNeedCreated = dataFina.filter(
+    (fina) => !existData.find((data) => compareId(data, fina)),
+  )
+
+  const doPromises = []
+
+  dataNeedCreated.map((data) => {
+    const newData = newSalesman(data)
+    const dataSaved = new Salesman(newData).save()
+
+    doPromises.push(dataSaved)
+
+    return true
+  })
+  await Promise.all(doPromises)
+
+  disconnectFromDB()
+
+  return {
+    total: sumData,
+    newData: dataNeedCreated.length,
+    message: 'Success',
+  }
+}
+
+const SyncMasterTerm = async () => {
+  let query = `SELECT count(*) FROM TERMOPMT`
+  const [{ COUNT: sumData }] = await QueryToDB(query)
+
+  query = `select t.TERMID as ID, t.TERMNAME, t.TERMMEMO from TERMOPMT t`
+
+  const findById = (ids) => {
+    const findId = { termId: { $in: ids } }
+
+    return findId
+  }
+  const compareId = (data, fina) => data.termId === fina.ID
+  const newTerm = (data) => {
+    const newData = {
+      termId: data.ID,
+      name: data.TERMNAME,
+      note: data.TERMMEMO,
+    }
+
+    return newData
+  }
+
+  const dataFina = await QueryToDB(query)
+  const ids = dataFina.map((data) => data.ID)
+  const existData = await Term.find(findById(ids)).lean()
+  const dataNeedCreated = dataFina.filter(
+    (fina) => !existData.find((data) => compareId(data, fina)),
+  )
+
+  const doPromises = []
+
+  dataNeedCreated.map((data) => {
+    const newData = newTerm(data)
+    const dataSaved = new Term(newData).save()
+
+    doPromises.push(dataSaved)
+
+    return true
+  })
+  await Promise.all(doPromises)
+
+  disconnectFromDB()
+
+  return {
+    total: sumData,
+    newData: dataNeedCreated.length,
+    message: 'Success',
+  }
+}
+
 module.exports = {
   CreateSO,
   SyncMasterItem,
@@ -430,4 +559,6 @@ module.exports = {
   SyncMasterItemCategory,
   SyncMasterCustomer,
   SyncMasterCustType,
+  SyncMasterSalesman,
+  SyncMasterTerm,
 }
