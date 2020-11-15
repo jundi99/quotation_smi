@@ -1,0 +1,27 @@
+{"data":[
+   {
+     "children":[
+      {
+         "children":[],
+         "icon":"home",
+         "id":19,
+         "title":"dashboard",
+         "translate":"dashboard",
+         "type":"item",
+         "url":"/dashboard"
+      },
+      {
+         "children":[],
+         "icon":"help_outline",
+         "id":43,
+         "title":"Bantuan",
+         "translate":"Bantuan",
+         "type":"item",
+         "url":"/settings/support"
+      }
+      ],
+      "title":"home",
+      "translate":"home",
+      "type":"group"
+   }
+]}

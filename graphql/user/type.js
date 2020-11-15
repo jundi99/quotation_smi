@@ -1,15 +1,31 @@
 module.exports = `
-  type Query {
-    current: User
+  type SubMenu {
+    icon: String
+    id: String
+    title: String
+    translate: String
+    type: String
+    url: String
   }
 
-  type loginResponse {
+  type MenuResponse {
+    title: String
+    translate: String
+    type: String
+    children : [SubMenu]
+  }
+
+  type Query {
+    CurrentUserMenu: [MenuResponse]
+  }
+
+  type LoginResponse {
     token: String
     current: User
   }
 
   type Mutation {
     #register(login: String!, password: String!): String
-    login(login: String!, password: String!): loginResponse
+    Login(login: String!, password: String!): LoginResponse
   }
 `

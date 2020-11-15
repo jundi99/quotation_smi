@@ -5,12 +5,15 @@ const {
 const jsonwebtoken = require('jsonwebtoken')
 const { JWT_SECRET } = process.env
 // const StandardError = require('../../utils/standard_error')
+const { CurrentMenu } = require('../../app/controllers/user')
 
 const resolvers = {
   Query: {
-    current(_, args, { user }) {
+    async CurrentUserMenu(_, args, { user }) {
       if (user) {
-        return User.findOne({ _id: user.id }).lean()
+        const currentUser = await User.findOne({ _id: user.id }).lean()
+
+        return CurrentMenu(currentUser)
       }
       throw new Error('Maaf, anda tidak memiliki akses!')
     },
@@ -36,7 +39,7 @@ const resolvers = {
     //   )
     // },
 
-    async login(_, { login, password }) {
+    async Login(_, { login, password }) {
       const user = await User.findOne({ userName: login })
 
       if (!user) {
