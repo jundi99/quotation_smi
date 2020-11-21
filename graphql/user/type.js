@@ -1,7 +1,53 @@
+module.exports.User = `
+  userName: String
+  userId: Int  
+  profile: Profile
+  ipHistory: IpHistory
+  authorize: AuthorizeUser
+`
+
 module.exports = `
+  type CRUD {
+    create: Boolean
+    edit: Boolean
+    delete: Boolean
+    print: Boolean
+  }
+
+  type AuthorizeUser {
+    item: CRUD
+    itemCategory: CRUD
+    customer: CRUD
+    custCategory: CRUD
+    price: CRUD
+    sales: CRUD
+    user: CRUD
+    itemStock: CRUD
+    quotation: CRUD
+    priceApproval: CRUD
+    salesOrder: CRUD
+    importExcel: CRUD
+  }
+
+  type Profile {
+    fullName: String
+    userLevel: Int
+  }
+
+  type IpHistory {
+      _id: ID!
+      device_type: String
+      device_id: String
+      date: String
+  }
+
+  type User {
+    ${module.exports.User}
+  }
+
   type SubMenu {
+    _id: ID
     icon: String
-    id: String
     title: String
     translate: String
     type: String
@@ -12,11 +58,21 @@ module.exports = `
     title: String
     translate: String
     type: String
+    icon: String
+    url: String
+    _id: ID
     children : [SubMenu]
   }
 
+  input GetUsersInput {
+    q: String
+    skip: Int
+    limit: Int
+  }
   type Query {
     CurrentUserMenu: [MenuResponse]
+    GetUser: User
+    GetUsers(input: GetUsersInput): [User]
   }
 
   type LoginResponse {
@@ -24,8 +80,45 @@ module.exports = `
     current: User
   }
 
+  type UpdateUserByIdResponse {
+    success: Boolean    
+  }
+
+  input ProfileInput {
+    fullName: String
+    userLevel: Int
+  }
+
+  input CRUDInput {
+    create: Boolean
+    edit: Boolean
+    delete: Boolean
+    print: Boolean
+  }
+
+  input AuthorizeUserInput {
+    item: CRUDInput
+    itemCategory: CRUDInput
+    customer: CRUDInput
+    custCategory: CRUDInput
+    price: CRUDInput
+    sales: CRUDInput
+    user: CRUDInput
+    itemStock: CRUDInput
+    quotation: CRUDInput
+    priceApproval: CRUDInput
+    salesOrder: CRUDInput
+    importExcel: CRUDInput    
+  }
+  input UpdateUserByIdInput {
+    userName: String
+    profile: ProfileInput   
+    authorize: AuthorizeUserInput     
+  }
+
   type Mutation {
     #register(login: String!, password: String!): String
     Login(login: String!, password: String!): LoginResponse
+    UpdateUserById(_id: ID!, input: UpdateUserByIdInput): UpdateUserByIdResponse
   }
 `

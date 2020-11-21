@@ -5,17 +5,33 @@ const {
 const jsonwebtoken = require('jsonwebtoken')
 const { JWT_SECRET } = process.env
 // const StandardError = require('../../utils/standard_error')
-const { CurrentMenu } = require('../../app/controllers/user')
+const {
+  CurrentMenu,
+  ValidateUser,
+  UpdateUserById,
+} = require('../../app/controllers/user')
+const fina = require('../../app/controllers/fina')
 
 const resolvers = {
   Query: {
     async CurrentUserMenu(_, args, { user }) {
       if (user) {
-        const currentUser = await User.findOne({ _id: user.id }).lean()
+        const currentUser = await ValidateUser(user)
 
         return CurrentMenu(currentUser)
       }
       throw new Error('Maaf, anda tidak memiliki akses!')
+    },
+    GetUser(_, args, { user }) {
+      return ValidateUser(user)
+    },
+    async GetUsers(_, { input }, { user }) {
+      user = await ValidateUser(user)
+      if (user.profile.userLevel !== 0) {
+        throw new Error('Maaf, anda tidak memiliki akses!')
+      }
+
+      return fina.GetMasterUsers(input)
     },
   },
 
@@ -38,7 +54,14 @@ const resolvers = {
     //     }
     //   )
     // },
+    async UpdateUserById(_, { _id, input }, { user }) {
+      user = await ValidateUser(user)
+      if (user.profile.userLevel !== 0) {
+        throw new Error('Maaf, anda tidak memiliki akses!')
+      }
 
+      return UpdateUserById(_id, input)
+    },
     async Login(_, { login, password }) {
       const user = await User.findOne({ userName: login })
 

@@ -38,7 +38,7 @@ const $SCHEMA = new Schema(
       customer: CRUD,
       custCategory: CRUD,
       price: CRUD,
-      sales: CRUD,
+      salesman: CRUD,
       user: CRUD,
       itemStock: CRUD,
       quotation: CRUD,

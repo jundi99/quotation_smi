@@ -1,8 +1,7 @@
 const {
-  SMIModels: { User },
+  SMIModels: { User, Menu },
 } = require('../../app/daos')
 const StandardError = require('../../utils/standard_error')
-
 const ValidateUser = (user) => {
   if (user) {
     return User.findOne({ _id: user.id }).lean()
@@ -10,102 +9,61 @@ const ValidateUser = (user) => {
   throw new StandardError('Maaf, anda tidak memiliki akses!')
 }
 
-const importExcel = {
-  children: [
-    {
-      children: [],
-      icon: 'items',
-      id: 1,
-      title: 'Items',
-      translate: 'Barang',
-      type: 'import',
-      url: 'SyncItem',
-    },
-    {
-      children: [],
-      icon: 'item_category',
-      id: 2,
-      title: 'Item Category',
-      translate: 'Kategori Barang',
-      type: 'import',
-      url: 'SyncItemCategory',
-    },
-    {
-      children: [],
-      icon: 'customer',
-      id: 3,
-      title: 'Customer',
-      translate: 'Pelanggan',
-      type: 'import',
-      url: 'SyncCustomer',
-    },
-    {
-      children: [],
-      icon: 'customer_type',
-      id: 4,
-      title: 'Customer Type',
-      translate: 'Tipe Pelanggan',
-      type: 'import',
-      url: 'SyncCustType',
-    },
-    {
-      children: [],
-      icon: 'salesman',
-      id: 5,
-      title: 'Salesman',
-      translate: 'Penjual',
-      type: 'import',
-      url: 'SyncSalesman',
-    },
-    {
-      children: [],
-      icon: 'term',
-      id: 6,
-      title: 'Terms',
-      translate: 'Termin',
-      type: 'import',
-      url: 'SyncTerm',
-    },
-    {
-      children: [],
-      icon: 'user',
-      id: 7,
-      title: 'Users',
-      translate: 'Pengguna',
-      type: 'import',
-      url: 'SyncUser',
-    },
-  ],
-  title: 'Import',
-  translate: 'Impor',
-  type: 'group',
-}
-
-const CurrentMenu = (currentUser) => {
+const CurrentMenu = async (currentUser) => {
   const { authorize } = currentUser
   const data = []
+  // const { CreateMenu } = require('../daos/setup_menu')
 
+  // await CreateMenu() // once time if needed
   if (authorize.importExcel.create || authorize.importExcel.edit) {
-    data.push(importExcel)
+    data.push(await Menu.findOne({ id: 'ImportMenu' }).lean())
   }
 
   if (authorize.user.create || authorize.user.edit) {
-    const user = {
-      icon: 'user',
-      id: 8,
-      title: 'User',
-      translate: 'Pengguna',
-      type: 'user',
-      url: 'SyncUser',
-    }
+    data.push(await Menu.findOne({ id: 'UserMenu' }).lean())
+  }
 
-    data.push(user)
+  if (authorize.customer.create || authorize.customer.edit) {
+    data.push(await Menu.findOne({ id: 'CustomerMenu' }).lean())
+  }
+
+  if (authorize.price.create || authorize.price.edit) {
+    data.push(await Menu.findOne({ id: 'PriceMenu' }).lean())
+  }
+
+  if (authorize.quotation.create || authorize.quotation.edit) {
+    data.push(await Menu.findOne({ id: 'QuotationMenu' }).lean())
+  }
+
+  if (authorize.salesOrder.create || authorize.salesOrder.edit) {
+    data.push(await Menu.findOne({ id: 'SalesOrderMenu' }).lean())
+  }
+
+  if (authorize.itemStock.create || authorize.itemStock.edit) {
+    data.push(await Menu.findOne({ id: 'ItemStockMenu' }).lean())
   }
 
   return data
 }
 
+const UpdateUserById = async (_id, body) => {
+  const userUpdated = await User.findOneAndUpdate(
+    { _id },
+    { $set: body },
+  ).lean()
+  const dataResponse = {
+    success: false,
+  }
+
+  if (userUpdated) {
+    dataResponse.success = true
+  }
+
+  return dataResponse
+}
+
 module.exports = {
   ValidateUser,
   CurrentMenu,
+  UpdateUserById,
 }

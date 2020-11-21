@@ -60,7 +60,7 @@ const QueryToDB = (sql, param = []) => {
 
   return def.promise
 }
-
+const joi = require('joi')
 const CreateSO = (req, res) => {
   Firebird.attach(options, (err, db) => {
     if (err) {
@@ -241,12 +241,13 @@ const newItem = async (data) => {
     },
     category: category._id,
 
-    stockSMI: 0,
+    stockSMI: data.STOCKSMI,
   }
 
   return newData
 }
 
+// eslint-disable-next-line max-lines-per-function
 const SyncMasterItem = async () => {
   const limit = 2 // default will set 200
   let query = `SELECT count(*) FROM ITEM i WHERE i.SUSPENDED=0`
@@ -258,27 +259,60 @@ const SyncMasterItem = async () => {
   i.RESERVED5, i.RESERVED6, i.RESERVED7, i.RESERVED8,
   i.RESERVED9, i.RESERVED10, i.UNITPRICE, i.UNITPRICE2, 
   i.UNITPRICE3, i.UNITPRICE4, i.UNITPRICE5,
-  i.QUANTITY, i.CATEGORYID, i.NOTES, i.DIMDEPTH, 
+  Coalesce((Select sum(ih.QUANTITY) from ITEMHIST ih where ih.ITEMNO=i.ITEMNO), 0) StockSMI, 
+  i.CATEGORYID, i.NOTES, i.DIMDEPTH, 
   i.DIMHEIGHT, i.DIMWIDTH, i.WEIGHT
   FROM ITEM i WHERE i.SUSPENDED=0 ORDER BY ITEMNO`
+  const promiseUpdate = []
+  const promiseCreate = []
 
-  const filterDataCreated = async (skip) => {
+  for (let index = 0; index < Math.ceil(sumData / limit); index++) {
+    const skip = limit * (index + 1) - limit
+    // eslint-disable-next-line no-await-in-loop
     const dataFina = await QueryToDB(query, [limit, skip])
     const ids = dataFina.map((data) => data.ID)
-    const existData = await Item.find({ itemNo: { $in: ids } }).lean()
+    // eslint-disable-next-line no-await-in-loop
+    const dataItemQuo = await Item.find({ itemNo: { $in: ids } }).lean()
 
-    return dataFina.filter(
-      (fina) => !existData.find((data) => data.itemNo === String(fina.ID)),
-    )
+    const createNewItem = async (fina) => {
+      const newData = await newItem(fina)
+
+      return new Item(newData).save()
+    }
+
+    dataFina.map((fina) => {
+      const dataQuo = dataItemQuo.find(
+        (data) => data.itemNo === String(fina.ID),
+      )
+
+      if (dataQuo) {
+        if (dataQuo.stockSMI !== fina.STOCKSMI) {
+          promiseUpdate.push(
+            Item.findOneAndUpdate(
+              { itemNo: String(fina.ID) },
+              { stockSMI: fina.STOCKSMI },
+            ),
+          )
+        }
+      } else {
+        promiseCreate.push(createNewItem(fina))
+      }
+
+      return true
+    })
   }
 
-  return DoProccessData({
-    limit,
-    sumData,
-    Collection: Item,
-    filterDataCreated,
-    newDataObj: newItem,
-  })
+  await Promise.all(promiseCreate)
+  await Promise.all(promiseUpdate)
+
+  disconnectFromDB()
+
+  return {
+    total: sumData,
+    newData: promiseCreate.length,
+    newUpdateStock: promiseUpdate.length,
+    message: 'Success',
+  }
 }
 
 const CRUD = {
@@ -297,7 +331,7 @@ const newUser = (user) => {
       customer: CRUD,
       custCategory: CRUD,
       price: CRUD,
-      sales: CRUD,
+      salesman: CRUD,
       user: CRUD,
       itemStock: CRUD,
       quotation: CRUD,
@@ -563,6 +597,87 @@ const SyncMasterTerm = async () => {
   }
 }
 
+const GetMasterItem = async (query) => {
+  const { skip, limit, category, itemNo, name, priceType } = await joi
+    .object({
+      category: joi.string().optional(),
+      itemNo: joi.string().optional(),
+      name: joi.string().optional(),
+      priceType: joi.string().optional(),
+      skip: joi.number().min(0).max(1000).default(0),
+      limit: joi.number().min(1).max(200).default(5),
+    })
+    .validateAsync(query)
+
+  const queryItem = {
+    ...(category ? { category } : {}),
+    ...(itemNo ? { itemNo: new RegExp(itemNo, 'gi') } : {}),
+    ...(name ? { name: new RegExp(name, 'gi') } : {}),
+    ...(priceType ? { priceType } : {}),
+  }
+
+  const items = await Item.find(queryItem)
+    .sort({ _id: -1 })
+    .skip(skip * limit)
+    .limit(limit)
+    .deepPopulate(['category'])
+    .lean()
+
+  const queryItemFina = `SELECT count(*) FROM ITEM i WHERE i.SUSPENDED=0`
+  const [{ COUNT: sumData }] = await QueryToDB(queryItemFina)
+  const itemCount = await Item.countDocuments()
+  let differentData = 0
+
+  if (sumData !== itemCount) {
+    differentData = Math.abs(sumData - itemCount)
+  }
+  const queryOutstandingOrder = `select sd.ITEMNO, SUM(sd.QUANTITY) as OutstandingOrder from SO s left join SODET sd on s.SOID=sd.SOID 
+  where s.SODATE = (select date 'Now' from rdb$database)
+  group by sd.ITEMNO`
+
+  const outstandingOrders = await QueryToDB(queryOutstandingOrder)
+
+  items.map((item) => {
+    item.stockSMI = item.stockSMI ? item.stockSMI : 0
+    item.stockSupplier = item.stockSupplier ? item.stockSupplier : 0
+    item.totalStockReadySell = item.stockSMI + item.stockSupplier
+    const outstandingData = outstandingOrders.find(
+      (order) => String(order.ITEMNO) === item.itemNo,
+    )
+
+    item.outstandingOrder = outstandingData
+      ? outstandingData.OUTSTANDINGORDER
+      : 0
+
+    return item
+  })
+
+  return { items, differentData }
+}
+
+const GetMasterUsers = async (query) => {
+  const { skip, limit, q } = await joi
+    .object({
+      q: joi.string().optional(),
+      skip: joi.number().min(0).max(1000).default(0),
+      limit: joi.number().min(1).max(200).default(5),
+    })
+    .validateAsync(query)
+
+  const users = await User.find({
+    $or: [
+      { userName: new RegExp(q, 'gi') },
+      { 'profile.fullName': new RegExp(q, 'gi') },
+    ],
+  })
+    .sort({ _id: -1 })
+    .skip(skip * limit)
+    .limit(limit)
+    .lean()
+
+  return users
+}
+
 module.exports = {
   CreateSO,
   SyncMasterItem,
@@ -572,4 +687,6 @@ module.exports = {
   SyncMasterCustType,
   SyncMasterSalesman,
   SyncMasterTerm,
+  GetMasterItem,
+  GetMasterUsers,
 }
