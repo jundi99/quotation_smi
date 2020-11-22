@@ -1,5 +1,6 @@
 const { DB_FINA, DB_FINA_PORT, DB_FINA_HOST } = process.env
 const Firebird = require('node-firebird')
+const _ = require('lodash')
 const options = {}
 
 options.host = DB_FINA_HOST
@@ -248,7 +249,8 @@ const newItem = async (data) => {
 }
 
 // eslint-disable-next-line max-lines-per-function
-const SyncMasterItem = async () => {
+const SyncMasterItem = async (opt) => {
+  _.merge(options, opt)
   const limit = 2 // default will set 200
   let query = `SELECT count(*) FROM ITEM i WHERE i.SUSPENDED=0`
   const [{ COUNT: sumData }] = await QueryToDB(query)
@@ -642,7 +644,8 @@ const GetMasterItem = async (query) => {
   if (sumData !== itemCount) {
     differentData = Math.abs(sumData - itemCount)
   }
-  const queryOutstandingOrder = `select sd.ITEMNO, SUM(sd.QUANTITY) as OutstandingOrder from SO s left join SODET sd on s.SOID=sd.SOID 
+  const queryOutstandingOrder = `select sd.ITEMNO, SUM(sd.QUANTITY) as OutstandingOrder 
+  from SO s left join SODET sd on s.SOID=sd.SOID 
   where s.SODATE = (select date 'Now' from rdb$database)
   group by sd.ITEMNO`
 
