@@ -387,15 +387,23 @@ const SyncMasterUser = async () => {
 }
 
 const newCustomer = async (customer) => {
-  const { _id: customerTypeId } = await CustomerType.findOne(
+  const customerType = customer.CUSTOMERTYPEID ? await CustomerType.findOne(
     { typeId: customer.CUSTOMERTYPEID },
     { _id: 1 },
-  )
+  ) : {}
+  const salesman = customer.SALESMANID ? await Salesman.findOne(
+    { salesmanId: customer.SALESMANID },
+    { _id: 1 },
+  ) : {}
+  const term = customer.TERMSID ? await Term.findOne(
+    { termId: customer.TERMSID },
+    { _id: 1 },
+  ) : {}
   const newData = {
     customerId: customer.ID,
     personNo: customer.PERSONNO,
     name: customer.NAME,
-    typeId: customerTypeId,
+    typeId: customerType._id,
     address: {
       addressLine1: customer.ADDRESSLINE1,
       addressLine2: customer.ADDRESSLINE2,
@@ -411,6 +419,9 @@ const newCustomer = async (customer) => {
     note: customer.NOTES,
     outstandingAR: 0,
     priceType: [],
+    salesman: salesman._id,
+    term: term._id,
+    isTax: customer.TAX1ID !== null,
   }
 
   return newData
@@ -424,7 +435,7 @@ const SyncMasterCustomer = async () => {
   query = `SELECT FIRST ? SKIP ? p.ID, p.PERSONNO, p.NAME, p.CUSTOMERTYPEID,
   p.ADDRESSLINE1, p.ADDRESSLINE2, p.CITY, p.STATEPROV, p.ZIPCODE,
   p.COUNTRY, p.CONTACT, p.PHONE, p.EMAIL, p.CREDITLIMIT,
-  p.NOTES from PERSONDATA p
+  p.NOTES, p.TAX1ID, p.TERMSID, p.SALESMANID from PERSONDATA p
   where p.PERSONTYPE=0`
 
   const filterDataCreated = async (skip) => {

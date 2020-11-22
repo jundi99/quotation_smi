@@ -8,7 +8,7 @@ const ValidateUser = (user) => {
   }
   throw new StandardError('Maaf, anda tidak memiliki akses!')
 }
-
+const _ = require('lodash')
 const CurrentMenu = async (currentUser) => {
   const { authorize } = currentUser
   const data = []
@@ -46,16 +46,42 @@ const CurrentMenu = async (currentUser) => {
   return data
 }
 
+const deepCopyFunction = (inObject) => {
+  let outObject, value, key
+
+  if (typeof inObject !== 'object' || inObject === null) {
+    return inObject // Return the value if inObject is not an object
+  }
+
+  // Create an array or object to hold the values
+  // eslint-disable-next-line prefer-const
+  outObject = Array.isArray(inObject) ? [] : {}
+
+  // eslint-disable-next-line guard-for-in
+  for (key in inObject) {
+    value = inObject[key]
+
+    // Recursively (deep) copy for nested objects, including arrays
+    // eslint-disable-next-line no-unused-vars
+    outObject[key] = deepCopyFunction(value)
+  }
+
+  return outObject
+}
+
 const UpdateUserById = async (_id, body) => {
-  const userUpdated = await User.findOneAndUpdate(
+  const user = await User.findOne({ _id }).lean()
+
+  body = _.merge(user, body)
+  const userUpdated = await User.updateOne(
     { _id },
-    { $set: body },
+    body,
   ).lean()
   const dataResponse = {
     success: false,
   }
 
-  if (userUpdated) {
+  if (userUpdated.nModified === 1) {
     dataResponse.success = true
   }
 

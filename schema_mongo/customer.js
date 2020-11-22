@@ -21,6 +21,11 @@ const SchemaObject = new Schema(
     note: String,
     outstandingAR: Number,
     priceType: [Schema.Types.Mixed],
+    salesman: { type: Schema.Types.ObjectId, ref: 'Salesman' },
+    term: { type: Schema.Types.ObjectId, ref: 'Term' },
+    isActive: { type: Boolean, default: false },
+    image: String,
+    isTax: { type: Boolean, default: false },
   },
   { timestamps: true },
 )
