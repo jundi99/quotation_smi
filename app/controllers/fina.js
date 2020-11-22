@@ -387,18 +387,18 @@ const SyncMasterUser = async () => {
 }
 
 const newCustomer = async (customer) => {
-  const customerType = customer.CUSTOMERTYPEID ? await CustomerType.findOne(
-    { typeId: customer.CUSTOMERTYPEID },
-    { _id: 1 },
-  ) : {}
-  const salesman = customer.SALESMANID ? await Salesman.findOne(
-    { salesmanId: customer.SALESMANID },
-    { _id: 1 },
-  ) : {}
-  const term = customer.TERMSID ? await Term.findOne(
-    { termId: customer.TERMSID },
-    { _id: 1 },
-  ) : {}
+  const customerType = customer.CUSTOMERTYPEID
+    ? await CustomerType.findOne(
+        { typeId: customer.CUSTOMERTYPEID },
+        { _id: 1 },
+      )
+    : {}
+  const salesman = customer.SALESMANID
+    ? await Salesman.findOne({ salesmanId: customer.SALESMANID }, { _id: 1 })
+    : {}
+  const term = customer.TERMSID
+    ? await Term.findOne({ termId: customer.TERMSID }, { _id: 1 })
+    : {}
   const newData = {
     customerId: customer.ID,
     personNo: customer.PERSONNO,

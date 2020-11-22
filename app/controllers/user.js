@@ -73,10 +73,7 @@ const UpdateUserById = async (_id, body) => {
   const user = await User.findOne({ _id }).lean()
 
   body = _.merge(user, body)
-  const userUpdated = await User.updateOne(
-    { _id },
-    body,
-  ).lean()
+  const userUpdated = await User.updateOne({ _id }, body).lean()
   const dataResponse = {
     success: false,
   }
