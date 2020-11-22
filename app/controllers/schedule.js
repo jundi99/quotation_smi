@@ -29,11 +29,7 @@ const UpdateTimerStock = async (body) => {
     name: STOCK,
   }
 
-  await Schedule.updateOne(
-    { name: STOCK },
-    data,
-    { upsert: true },
-  )
+  await Schedule.updateOne({ name: STOCK }, data, { upsert: true })
   await autoUpdateStock()
 
   return { message: 'OK' }

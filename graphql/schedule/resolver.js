@@ -1,5 +1,8 @@
 const { ValidateUser } = require('../../app/controllers/user')
-const { UpdateTimerStock, GetSchedule } = require('../../app/controllers/schedule')
+const {
+  UpdateTimerStock,
+  GetSchedule,
+} = require('../../app/controllers/schedule')
 const resolvers = {
   Query: {
     async GetSchedule(_, args, { user }) {
