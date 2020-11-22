@@ -1,13 +1,25 @@
 module.exports = `
-  type Query {
-    current: User
-  }
-
   type UpdateScheduleStockResponse {
     message: String
   }
 
+  input UpdateScheduleStockInput {
+    minutes: Int!
+    dbFina: String
+    fileXLS: String
+  }
+
+  type GetScheduleResponse {
+    minutes: Int
+    dbFina: String
+    fileXLS: String
+  }
+  type Query {
+    current: User
+    GetSchedule: GetScheduleResponse
+  }
+
   type Mutation {
-    UpdateScheduleStock(minutes:Int!): UpdateScheduleStockResponse
+    UpdateScheduleStock(input: UpdateScheduleStockInput): UpdateScheduleStockResponse
   }
 `

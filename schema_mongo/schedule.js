@@ -4,6 +4,8 @@ const SchemaObject = new Schema(
   {
     name: String,
     timer: Number,
+    dbFina: String,
+    fileXLS: String,
   },
   { timestamps: true },
 )

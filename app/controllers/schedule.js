@@ -20,13 +20,18 @@ const autoUpdateStock = async () => {
 
 autoUpdateStock()
 
-const UpdateTimerStock = async (minutes) => {
+const UpdateTimerStock = async (body) => {
   clearInterval(timerId)
-  const timer = minutes * 1000 * 60
+  const timer = body.minutes * 1000 * 60
+  const data = {
+    ...body,
+    timer,
+    name: STOCK,
+  }
 
-  await Schedule.findOneAndUpdate(
+  await Schedule.updateOne(
     { name: STOCK },
-    { name: STOCK, timer },
+    data,
     { upsert: true },
   )
   await autoUpdateStock()
@@ -34,6 +39,15 @@ const UpdateTimerStock = async (minutes) => {
   return { message: 'OK' }
 }
 
+const GetSchedule = async () => {
+  const schedule = await Schedule.findOne({ name: STOCK }).lean()
+
+  schedule.minutes = schedule.timer / 1000 / 60
+
+  return schedule
+}
+
 module.exports = {
   UpdateTimerStock,
+  GetSchedule,
 }

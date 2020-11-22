@@ -616,7 +616,7 @@ const GetMasterItem = async (query) => {
       name: joi.string().optional(),
       priceType: joi.string().optional(),
       skip: joi.number().min(0).max(1000).default(0),
-      limit: joi.number().min(1).max(200).default(5),
+      limit: joi.number().min(1).max(200).default(20),
     })
     .validateAsync(query)
 

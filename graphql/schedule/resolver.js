@@ -1,11 +1,18 @@
 const { ValidateUser } = require('../../app/controllers/user')
-const { UpdateTimerStock } = require('../../app/controllers/schedule')
+const { UpdateTimerStock, GetSchedule } = require('../../app/controllers/schedule')
 const resolvers = {
-  Mutation: {
-    async UpdateScheduleStock(_, { minutes }, { user }) {
+  Query: {
+    async GetSchedule(_, args, { user }) {
       await ValidateUser(user)
 
-      return UpdateTimerStock(minutes)
+      return GetSchedule()
+    },
+  },
+  Mutation: {
+    async UpdateScheduleStock(_, { input }, { user }) {
+      await ValidateUser(user)
+
+      return UpdateTimerStock(input)
     },
   },
 }
