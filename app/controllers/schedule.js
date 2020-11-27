@@ -26,7 +26,7 @@ const autoUpdateStock = async (directRun) => {
     }
   }
   if (directRun) {
-    return SyncMasterItem(options)
+    SyncMasterItem(options)
   }
   timerId = setInterval(() => {
     log(`${new Date()} | new timer: ${timer}`)
