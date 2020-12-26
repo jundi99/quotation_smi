@@ -1,7 +1,9 @@
-const { DB_FINA, DB_FINA_PORT, DB_FINA_HOST } = process.env
+const { DB_FINA, DB_FINA_PORT, DB_FINA_HOST, FINA_SMI_URI } = process.env
 const Firebird = require('node-firebird')
 const _ = require('lodash')
 const options = {}
+const fetch = require('node-fetch')
+const normalizeUrl = require('normalize-url')
 
 options.host = DB_FINA_HOST
 options.port = DB_FINA_PORT
@@ -251,68 +253,63 @@ const newItem = async (data) => {
 // eslint-disable-next-line max-lines-per-function
 const SyncMasterItem = async (opt) => {
   _.merge(options, opt)
-  const limit = 2 // default will set 200
-  let query = `SELECT count(*) FROM ITEM i WHERE i.SUSPENDED=0`
-  const [{ COUNT: sumData }] = await QueryToDB(query)
+  const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/sync-item`), {
+    method: 'POST',
+    body: JSON.stringify({
+      options,
+    }),
+    headers: {
+      'Content-Type': 'application/json',
+      // Authorization: `Basic ${ONE_SIGNAL_REST_API_KEY}`,
+    },
+  })
 
-  query = `SELECT FIRST ? SKIP ? i.ITEMNO as ID, 
-  i.ITEMDESCRIPTION, i.UNIT1,
-  i.RESERVED1, i.RESERVED2, i.RESERVED3, i.RESERVED4,
-  i.RESERVED5, i.RESERVED6, i.RESERVED7, i.RESERVED8,
-  i.RESERVED9, i.RESERVED10, i.UNITPRICE, i.UNITPRICE2, 
-  i.UNITPRICE3, i.UNITPRICE4, i.UNITPRICE5,
-  Coalesce((Select sum(ih.QUANTITY) from ITEMHIST ih where ih.ITEMNO=i.ITEMNO), 0) StockSMI, 
-  i.CATEGORYID, i.NOTES, i.DIMDEPTH, 
-  i.DIMHEIGHT, i.DIMWIDTH, i.WEIGHT
-  FROM ITEM i WHERE i.SUSPENDED=0 ORDER BY ITEMNO`
-  const promiseUpdate = []
-  const promiseCreate = []
+  // console.log(dataFina)
+  // for (let index = 0; index < Math.ceil(sumData / limit); index++) {
+  //   const skip = limit * (index + 1) - limit
+  //   // eslint-disable-next-line no-await-in-loop
+  //   const dataFina = await QueryToDB(query, [limit, skip])
+  //   const ids = dataFina.map((data) => data.ID)
+  //   // eslint-disable-next-line no-await-in-loop
+  //   const dataItemQuo = await Item.find({ itemNo: { $in: ids } }).lean()
 
-  for (let index = 0; index < Math.ceil(sumData / limit); index++) {
-    const skip = limit * (index + 1) - limit
-    // eslint-disable-next-line no-await-in-loop
-    const dataFina = await QueryToDB(query, [limit, skip])
-    const ids = dataFina.map((data) => data.ID)
-    // eslint-disable-next-line no-await-in-loop
-    const dataItemQuo = await Item.find({ itemNo: { $in: ids } }).lean()
+  //   const createNewItem = async (fina) => {
+  //     const newData = await newItem(fina)
 
-    const createNewItem = async (fina) => {
-      const newData = await newItem(fina)
+  //     return new Item(newData).save()
+  //   }
 
-      return new Item(newData).save()
-    }
+  //   dataFina.map((fina) => {
+  //     const dataQuo = dataItemQuo.find(
+  //       (data) => data.itemNo === String(fina.ID),
+  //     )
 
-    dataFina.map((fina) => {
-      const dataQuo = dataItemQuo.find(
-        (data) => data.itemNo === String(fina.ID),
-      )
+  //     if (dataQuo) {
+  //       if (dataQuo.stockSMI !== fina.STOCKSMI) {
+  //         promiseUpdate.push(
+  //           Item.findOneAndUpdate(
+  //             { itemNo: String(fina.ID) },
+  //             { stockSMI: fina.STOCKSMI },
+  //           ),
+  //         )
+  //       }
+  //     } else {
+  //       promiseCreate.push(createNewItem(fina))
+  //     }
 
-      if (dataQuo) {
-        if (dataQuo.stockSMI !== fina.STOCKSMI) {
-          promiseUpdate.push(
-            Item.findOneAndUpdate(
-              { itemNo: String(fina.ID) },
-              { stockSMI: fina.STOCKSMI },
-            ),
-          )
-        }
-      } else {
-        promiseCreate.push(createNewItem(fina))
-      }
+  //     return true
+  //   })
+  // }
 
-      return true
-    })
-  }
+  // await Promise.all(promiseCreate)
+  // await Promise.all(promiseUpdate)
 
-  await Promise.all(promiseCreate)
-  await Promise.all(promiseUpdate)
-
-  disconnectFromDB()
+  // disconnectFromDB()
 
   return {
-    total: sumData,
-    newData: promiseCreate.length,
-    newUpdateStock: promiseUpdate.length,
+    // total: sumData,
+    // newData: promiseCreate.length,
+    // newUpdateStock: promiseUpdate.length,
     message: 'Success',
   }
 }
@@ -360,32 +357,50 @@ const newUser = (user) => {
 }
 
 const SyncMasterUser = async () => {
-  const limit = 2 // default will set 200
-  let query = `SELECT count(*) FROM USERS r`
-  const [{ COUNT: sumData }] = await QueryToDB(query)
-
-  query = `SELECT FIRST ? SKIP ? r.userId as ID, 
-  r.userName, r.userLevel, r.fullName FROM USERS r
-  ORDER BY USERID`
-
-  const filterDataCreated = async (skip) => {
-    const dataFina = await QueryToDB(query, [limit, skip])
-    const ids = dataFina.map((data) => data.ID)
-    const existData = await User.find({ userId: { $in: ids } }).lean()
-    const filtered = dataFina.filter(
-      (fina) => !existData.find((data) => data.userId === fina.ID),
-    )
-
-    return filtered
-  }
-
-  return DoProccessData({
-    limit,
-    sumData,
-    Collection: User,
-    filterDataCreated,
-    newDataObj: newUser,
+  const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/sync-user`), {
+    method: 'POST',
+    // body: JSON.stringify({
+    //   options
+    // }),
+    headers: {
+      'Content-Type': 'application/json',
+      // Authorization: `Basic ${ONE_SIGNAL_REST_API_KEY}`,
+    },
   })
+
+  const { data, total } = await dataFina.json()
+  const dataUsers = []
+
+  data.map((fina) => {
+    return dataUsers.push(
+      User.findOneAndUpdate({ userId: fina.ID }, fina, { upsert: true }),
+    )
+  })
+  await Promise.all(dataUsers)
+  // const filterDataCreated = async (skip) => {
+  //   const dataFina = await QueryToDB(query, [limit, skip])
+  //   const ids = dataFina.map((data) => data.ID)
+  //   const existData = await User.find({ userId: { $in: ids } }).lean()
+  //   const filtered = dataFina.filter(
+  //     (fina) => !existData.find((data) => data.userId === fina.ID),
+  //   )
+
+  //   return filtered
+  // }
+
+  // return DoProccessData({
+  //   limit,
+  //   sumData,
+  //   Collection: User,
+  //   filterDataCreated,
+  //   newDataObj: newUser,
+  // })
+  return {
+    total,
+    // newData: promiseCreate.length,
+    // newUpdateStock: promiseUpdate.length,
+    message: 'Success',
+  }
 }
 
 const newCustomer = async (customer) => {
