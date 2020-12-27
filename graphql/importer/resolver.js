@@ -11,7 +11,7 @@ const resolvers = {
     async SyncUser(_, args, { user }) {
       await ValidateUser(user)
 
-      return fina.SyncMasterUser()
+      return fina.SyncMasterUser(user)
     },
     async SyncItem(_, args, { user }) {
       await ValidateUser(user)
@@ -36,7 +36,7 @@ const resolvers = {
         }
       }
 
-      return fina.SyncMasterItem(options)
+      return fina.SyncMasterItem(options, user)
     },
     async SyncItemCategory(_, args, { user }) {
       await ValidateUser(user)

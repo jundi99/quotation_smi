@@ -1,9 +1,16 @@
-const { DB_FINA, DB_FINA_PORT, DB_FINA_HOST, FINA_SMI_URI } = process.env
+const {
+  DB_FINA,
+  DB_FINA_PORT,
+  DB_FINA_HOST,
+  FINA_SMI_URI,
+  JWT_SECRET,
+} = process.env
 const Firebird = require('node-firebird')
 const _ = require('lodash')
 const options = {}
 const fetch = require('node-fetch')
 const normalizeUrl = require('normalize-url')
+const jsonwebtoken = require('jsonwebtoken')
 
 options.host = DB_FINA_HOST
 options.port = DB_FINA_PORT
@@ -251,8 +258,15 @@ const newItem = async (data) => {
 }
 
 // eslint-disable-next-line max-lines-per-function
-const SyncMasterItem = async (opt) => {
+const SyncMasterItem = async (opt, user) => {
   _.merge(options, opt)
+  const token = jsonwebtoken.sign(
+    { id: user.id, userName: user.userName },
+    JWT_SECRET,
+    {
+      expiresIn: '5m',
+    },
+  )
   const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/sync-item`), {
     method: 'POST',
     body: JSON.stringify({
@@ -260,7 +274,7 @@ const SyncMasterItem = async (opt) => {
     }),
     headers: {
       'Content-Type': 'application/json',
-      // Authorization: `Basic ${ONE_SIGNAL_REST_API_KEY}`,
+      ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
     },
   })
 
@@ -356,49 +370,38 @@ const newUser = (user) => {
   return newData
 }
 
-const SyncMasterUser = async () => {
+const SyncMasterUser = async (user) => {
+  const token = jsonwebtoken.sign(
+    { id: user.id, userName: user.userName },
+    JWT_SECRET,
+    {
+      expiresIn: '5m',
+    },
+  )
   const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/sync-user`), {
     method: 'POST',
-    // body: JSON.stringify({
-    //   options
-    // }),
     headers: {
       'Content-Type': 'application/json',
-      // Authorization: `Basic ${ONE_SIGNAL_REST_API_KEY}`,
+      Authorization: `${token}`,
     },
   })
 
   const { data, total } = await dataFina.json()
-  const dataUsers = []
+  const ids = data.map((fina) => fina.ID)
+  const existData = await User.find({ userId: { $in: ids } }).lean()
+  const filterDataFinaNotExistsInMongo = data.filter(
+    (fina) => !existData.find((data) => data.userId === fina.ID),
+  )
 
-  data.map((fina) => {
-    return dataUsers.push(
-      User.findOneAndUpdate({ userId: fina.ID }, fina, { upsert: true }),
-    )
+  filterDataFinaNotExistsInMongo.map(async (data) => {
+    const newData = await newUser(data)
+
+    return new User(newData).save()
   })
-  await Promise.all(dataUsers)
-  // const filterDataCreated = async (skip) => {
-  //   const dataFina = await QueryToDB(query, [limit, skip])
-  //   const ids = dataFina.map((data) => data.ID)
-  //   const existData = await User.find({ userId: { $in: ids } }).lean()
-  //   const filtered = dataFina.filter(
-  //     (fina) => !existData.find((data) => data.userId === fina.ID),
-  //   )
 
-  //   return filtered
-  // }
-
-  // return DoProccessData({
-  //   limit,
-  //   sumData,
-  //   Collection: User,
-  //   filterDataCreated,
-  //   newDataObj: newUser,
-  // })
   return {
     total,
-    // newData: promiseCreate.length,
-    // newUpdateStock: promiseUpdate.length,
+    newData: filterDataFinaNotExistsInMongo.length,
     message: 'Success',
   }
 }
