@@ -14,19 +14,22 @@ const GetCustomers = async (query) => {
       limit: joi.number().min(1).max(200).default(5),
     })
     .validateAsync(query)
-  const customers = await Customer.find({
-    ...(personNo ? { personNo: new RegExp(personNo, 'gi') } : {}),
-    ...(name ? { name: new RegExp(name, 'gi') } : {}),
-    ...(typeId ? { typeId } : {}),
-    ...(isActive ? { isActive } : {}),
-  })
-    .sort({ _id: -1 })
-    .skip(skip * limit)
-    .limit(limit)
-    .deepPopulate(['typeId', 'salesman', 'term'])
-    .lean()
+  const [customers, total] = await Promise.all([
+    Customer.find({
+      ...(personNo ? { personNo: new RegExp(personNo, 'gi') } : {}),
+      ...(name ? { name: new RegExp(name, 'gi') } : {}),
+      ...(typeId ? { typeId } : {}),
+      ...(isActive ? { isActive } : {}),
+    })
+      .sort({ _id: -1 })
+      .skip(skip * limit)
+      .limit(limit)
+      .deepPopulate(['typeId', 'salesman', 'term'])
+      .lean(),
+    Customer.countDocuments(),
+  ])
 
-  return { customers, total: customers.length }
+  return { customers, total }
 }
 
 const UpsertCustomer = async (body) => {
