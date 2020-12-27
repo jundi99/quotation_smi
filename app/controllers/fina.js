@@ -5,15 +5,7 @@ const normalizeUrl = require('normalize-url')
 const { JwtSign } = require('../utils')
 const { NewItem, NewUser, NewCustomer } = require('../utils/helper')
 const {
-  SMIModels: {
-    User,
-    Item,
-    ItemCategory,
-    CustomerType,
-    Customer,
-    Salesman,
-    Term,
-  },
+  SMIModels: { User, Item, ItemCategory, Customer, Salesman, Term },
 } = require('../daos')
 const joi = require('joi')
 const {
@@ -210,59 +202,6 @@ const SyncMasterCustomer = async (user) => {
   }
 }
 
-const SyncMasterCustType = async (user) => {
-  const token = JwtSign(user)
-  const dataFina = await fetch(
-    normalizeUrl(`${FINA_SMI_URI}/fina/sync-custtype`),
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
-      },
-    },
-  ).catch((err) => {
-    return { fail: true, err }
-  })
-
-  if (dataFina.fail || dataFina.ok === false) {
-    return { total: 0, newData: 0, message: FAIL }
-  }
-  const { data, total } = await dataFina.json()
-  const newCustType = (data) => {
-    const newData = {
-      typeId: data.ID,
-      name: data.TYPENAME,
-    }
-
-    return newData
-  }
-
-  const doPromises = []
-
-  data.map((fina) => {
-    return doPromises.push(
-      CustomerType.findOneAndUpdate({ typeId: fina.ID }, newCustType(fina), {
-        upsert: true,
-        rawResult: true,
-      }).lean(),
-    )
-  })
-
-  const results = await Promise.all(doPromises)
-  const newData = results.reduce((prev, curr) => {
-    const value = curr.lastErrorObject.updatedExisting ? 0 : 1
-
-    return prev + value
-  }, 0)
-
-  return {
-    total,
-    newData,
-    message: SUCCESS,
-  }
-}
-
 const SyncMasterSalesman = async (user) => {
   const token = JwtSign(user)
   const dataFina = await fetch(
@@ -440,7 +379,6 @@ module.exports = {
   SyncMasterUser,
   SyncMasterItemCategory,
   SyncMasterCustomer,
-  SyncMasterCustType,
   SyncMasterSalesman,
   SyncMasterTerm,
   GetMasterItem,

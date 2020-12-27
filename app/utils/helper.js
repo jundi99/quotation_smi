@@ -1,5 +1,5 @@
 const {
-  SMIModels: { ItemCategory, CustomerType, Salesman, Term },
+  SMIModels: { ItemCategory, Salesman, Term },
 } = require('../daos')
 
 const NewItem = async (data) => {
@@ -94,12 +94,6 @@ const NewUser = (user) => {
 }
 
 const NewCustomer = async (customer) => {
-  const customerType = customer.CUSTOMERTYPEID
-    ? await CustomerType.findOne(
-        { typeId: customer.CUSTOMERTYPEID },
-        { _id: 1 },
-      )
-    : {}
   const salesman = customer.SALESMANID
     ? await Salesman.findOne({ salesmanId: customer.SALESMANID }, { _id: 1 })
     : {}
@@ -110,7 +104,6 @@ const NewCustomer = async (customer) => {
     customerId: customer.ID,
     personNo: customer.PERSONNO,
     name: customer.NAME,
-    typeId: customerType._id,
     address: {
       addressLine1: customer.ADDRESSLINE1,
       addressLine2: customer.ADDRESSLINE2,

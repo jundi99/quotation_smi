@@ -2,7 +2,6 @@ const mongoose = require('mongoose')
 const { Schema } = mongoose
 const SchemaObject = new Schema(
   {
-    typeId: Number,
     name: { type: String, required: true },
   },
   { timestamps: true },
@@ -14,6 +13,6 @@ SchemaObject.plugin(require('mongoose-delete'), {
 })
 
 module.exports = {
-  SchemaName: 'CustomerType',
+  SchemaName: 'CustCategory',
   SchemaObject,
 }

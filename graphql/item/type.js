@@ -6,7 +6,7 @@ module.exports.Item = `
   minimumOrder: String
   price: PriceLevel
   quantity: Int
-  category: Category
+  category: ItemCategory
   note: String
   weight: Int
   dimension: Dimension
@@ -35,7 +35,7 @@ module.exports = `
     level5: Int
   }
 
-  type Category {
+  type ItemCategory {
     _id: ID
     name: String
   }

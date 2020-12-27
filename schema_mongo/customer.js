@@ -5,7 +5,7 @@ const SchemaObject = new Schema(
     customerId: Number,
     personNo: String,
     name: String,
-    typeId: { type: Schema.Types.ObjectId, ref: 'CustomerType' },
+    category: { type: Schema.Types.ObjectId, ref: 'CustCategory' },
     address: {
       addressLine1: String,
       addressLine2: String,
