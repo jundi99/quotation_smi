@@ -55,6 +55,7 @@ module.exports = `
   type GetItemResponse {
     items: [Item]
     differentData: Int
+    message: String
   }
   
   input GetItemInput {

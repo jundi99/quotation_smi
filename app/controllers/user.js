@@ -9,6 +9,8 @@ const ValidateUser = (user) => {
   throw new StandardError('Maaf, anda tidak memiliki akses!')
 }
 const _ = require('lodash')
+const joi = require('joi')
+
 const CurrentMenu = async (currentUser) => {
   const { authorize } = currentUser
   const data = []
@@ -62,8 +64,32 @@ const UpdateUserById = async (_id, body) => {
   return dataResponse
 }
 
+const GetMasterUsers = async (query) => {
+  const { skip, limit, q } = await joi
+    .object({
+      q: joi.string().optional(),
+      skip: joi.number().min(0).max(1000).default(0),
+      limit: joi.number().min(1).max(200).default(5),
+    })
+    .validateAsync(query)
+
+  const users = await User.find({
+    $or: [
+      { userName: new RegExp(q, 'gi') },
+      { 'profile.fullName': new RegExp(q, 'gi') },
+    ],
+  })
+    .sort({ _id: -1 })
+    .skip(skip * limit)
+    .limit(limit)
+    .lean()
+
+  return users
+}
+
 module.exports = {
   ValidateUser,
   CurrentMenu,
   UpdateUserById,
+  GetMasterUsers,
 }

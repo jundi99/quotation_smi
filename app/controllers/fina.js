@@ -1,26 +1,9 @@
-const {
-  DB_FINA,
-  DB_FINA_PORT,
-  DB_FINA_HOST,
-  FINA_SMI_URI,
-  JWT_SECRET,
-} = process.env
-const Firebird = require('node-firebird')
+const { FINA_SMI_URI } = process.env
 const _ = require('lodash')
-const options = {}
 const fetch = require('node-fetch')
 const normalizeUrl = require('normalize-url')
-const jsonwebtoken = require('jsonwebtoken')
-
-options.host = DB_FINA_HOST
-options.port = DB_FINA_PORT
-options.database = DB_FINA
-options.user = 'v1c09'
-options.password = 'integrity01'
-options.lowercase_keys = false // set to true to lowercase keys
-options.role = null // default
-options.pageSize = 4096 // default when creating database
-options.charset = 'utf8'
+const { JwtSign } = require('../utils')
+const { NewItem, NewUser, NewCustomer } = require('../utils/helper')
 const {
   SMIModels: {
     User,
@@ -32,146 +15,31 @@ const {
     Term,
   },
 } = require('../daos')
-const { log } = console
-const q = require('q') // promises lib
-let db
-const connectToDB = (acfg) => {
-  const def = q.defer()
-
-  Firebird.attach(acfg, (err, db) => {
-    err ? def.reject(err) : def.resolve(db)
-  })
-
-  return def.promise
-}
-
-const disconnectFromDB = () => {
-  db.detach(() => {
-    log('database detached')
-  })
-}
-
-const QueryToDB = (sql, param = []) => {
-  const def = q.defer()
-
-  connectToDB(options).then(
-    // success
-    (dbconn) => {
-      db = dbconn
-      db.query(sql, param, (err, rs) => {
-        err ? def.reject(err) : def.resolve(rs)
-      })
-    },
-    // fail
-    (err) => {
-      log(err)
-    },
-  )
-
-  return def.promise
-}
 const joi = require('joi')
-const CreateSO = (req, res) => {
-  Firebird.attach(options, (err, db) => {
-    if (err) {
-      throw err
-    }
+const {
+  StatusMessage: { SUCCESS, FAIL },
+} = require('../constan')
 
-    db.query('select SOID from GETSOID', [], (err, result) => {
-      if (err) {
-        throw err
-      }
-      const [data] = result
-      const { SOID } = data
-
-      db.query(
-        `INSERT INTO SO (SOID, SONO, ESTSHIPDATE, INVAMOUNT) 
-        VALUES(?, ?, ?, ?) returning SOID`,
-        [SOID, 'A7', new Date(), 10000],
-        (err, { SOID }) => {
-          if (err) {
-            throw err
-          }
-          db.query('SELECT * FROM SO WHERE SOID=?', [SOID], (err, result) => {
-            if (err) {
-              throw err
-            }
-            log(result)
-            db.detach()
-          })
-        },
-      )
-      // db.transaction(Firebird.ISOLATION_READ_COMMITED, function(err, transaction) {
-      //     transaction.query(
-      //         'INSERT INTO SO (SOID, SONO, ESTSHIPDATE, INVAMOUNT) VALUES(?, ?, ?, ?)',
-      //         [SOID.SOID, 'A1', '12.10.2020', 10000], function(err, result) {
-
-      //         if (err) {
-      //             transaction.rollback();
-      //             return;
-      //         }
-
-      //         transaction.commit(function(err) {
-      //             if (err)
-      //                 transaction.rollback();
-      //             else
-      //                 db.detach();
-      //         });
-      //     });
-      // });
-    })
-    res.json('ok')
+const SyncMasterItemCategory = async (user) => {
+  const token = JwtSign(user)
+  const dataFina = await fetch(
+    normalizeUrl(`${FINA_SMI_URI}/fina/sync-itemcategory`),
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
+      },
+    },
+  ).catch((err) => {
+    return { fail: true, err }
   })
-}
 
-const DoProccessData = async ({
-  limit,
-  sumData,
-  Collection,
-  filterDataCreated,
-  newDataObj,
-}) => {
-  let countNewData = 0
-
-  const promises = []
-  const dataNeedCreated = async (skip) => {
-    const data = await filterDataCreated(skip)
-
-    countNewData += data.length
-
-    return data.map(async (data) => {
-      const newData = await newDataObj(data)
-
-      return new Collection(newData).save()
-    })
+  if (dataFina.fail) {
+    return { total: 0, newData: 0, message: FAIL }
   }
-
-  for (let index = 0; index < Math.ceil(sumData / limit); index++) {
-    const skip = limit * (index + 1) - limit
-
-    promises.push(dataNeedCreated(skip))
-  }
-
-  await Promise.all(promises)
-  disconnectFromDB()
-
-  return { total: sumData, newData: countNewData, message: 'Success' }
-}
-
-const SyncMasterItemCategory = async () => {
-  let query = `SELECT count(*) FROM ITEMCATEGORY`
-  const [{ COUNT: sumData }] = await QueryToDB(query)
-
-  query = `SELECT ic.CATEGORYID as ID, ic.NAME
-  FROM ITEMCATEGORY ic`
-
-  const findById = (ids) => {
-    const findId = { categoryId: { $in: ids } }
-
-    return findId
-  }
-  const compareId = (data, fina) => data.categoryId === fina.ID
-  const newItem = (data) => {
+  const { data, total } = await dataFina.json()
+  const newItemCategory = (data) => {
     const newData = {
       categoryId: data.ID,
       name: data.NAME,
@@ -180,211 +48,109 @@ const SyncMasterItemCategory = async () => {
     return newData
   }
 
-  const dataFina = await QueryToDB(query)
-  const ids = dataFina.map((data) => data.ID)
-  const existData = await ItemCategory.find(findById(ids)).lean()
-  const dataNeedCreated = dataFina.filter(
-    (fina) => !existData.find((data) => compareId(data, fina)),
-  )
-
   const doPromises = []
 
-  dataNeedCreated.map((data) => {
-    const newData = newItem(data)
-    const dataSaved = new ItemCategory(newData).save()
-
-    doPromises.push(dataSaved)
-
-    return true
+  data.map((fina) => {
+    return doPromises.push(
+      ItemCategory.findOneAndUpdate(
+        { categoryId: fina.ID },
+        newItemCategory(fina),
+        { upsert: true, rawResult: true },
+      ),
+    )
   })
-  await Promise.all(doPromises)
 
-  disconnectFromDB()
+  const results = await Promise.all(doPromises)
+  const newData = results.reduce((prev, curr) => {
+    const value = curr.lastErrorObject.updatedExisting ? 0 : 1
+
+    return prev + value
+  }, 0)
 
   return {
-    total: sumData,
-    newData: dataNeedCreated.length,
-    message: 'Success',
+    total,
+    newData,
+    message: SUCCESS,
   }
 }
 
-const newItem = async (data) => {
-  let category = {}
-
-  if (data.CATEGORYID) {
-    category = await ItemCategory.findOne(
-      { categoryId: data.CATEGORYID },
-      { _id: 1 },
-    ).lean()
-  }
-
-  const newData = {
-    itemNo: data.ID,
-    name: data.ITEMDESCRIPTION,
-    unit: data.UNIT1,
-    reserved: {
-      item1: data.RESERVED1,
-      item2: data.RESERVED2,
-      item3: data.RESERVED3,
-      item4: data.RESERVED4,
-      item5: data.RESERVED5,
-      item6: data.RESERVED6,
-      item7: data.RESERVED7,
-      item8: data.RESERVED8,
-      item9: data.RESERVED9,
-      item10: data.RESERVED10,
-    },
-    price: {
-      level1: data.UNITPRICE,
-      level2: data.UNITPRICE2,
-      level3: data.UNITPRICE3,
-      level4: data.UNITPRICE4,
-      level5: data.UNITPRICE5,
-    },
-    quantity: data.QUANTITY,
-    note: data.NOTES,
-    weigth: data.WEIGTH,
-    dimension: {
-      width: data.DIMWIDTH,
-      heigth: data.DIMHEIGHT,
-      depth: data.DIMDEPTH,
-    },
-    category: category._id,
-
-    stockSMI: data.STOCKSMI,
-  }
-
-  return newData
-}
-
-// eslint-disable-next-line max-lines-per-function
 const SyncMasterItem = async (opt, user) => {
-  _.merge(options, opt)
-  const token = jsonwebtoken.sign(
-    { id: user.id, userName: user.userName },
-    JWT_SECRET,
-    {
-      expiresIn: '5m',
-    },
-  )
+  const token = JwtSign(user)
   const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/sync-item`), {
     method: 'POST',
     body: JSON.stringify({
-      options,
+      opt,
     }),
     headers: {
       'Content-Type': 'application/json',
       ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
     },
+  }).catch((err) => {
+    return { fail: true, err }
   })
 
-  // console.log(dataFina)
-  // for (let index = 0; index < Math.ceil(sumData / limit); index++) {
-  //   const skip = limit * (index + 1) - limit
-  //   // eslint-disable-next-line no-await-in-loop
-  //   const dataFina = await QueryToDB(query, [limit, skip])
-  //   const ids = dataFina.map((data) => data.ID)
-  //   // eslint-disable-next-line no-await-in-loop
-  //   const dataItemQuo = await Item.find({ itemNo: { $in: ids } }).lean()
+  if (dataFina.fail) {
+    return { total: 0, newData: 0, newUpdateStock: 0, message: FAIL }
+  }
+  const { data, total } = await dataFina.json()
+  const ids = data.map((fina) => fina.ITEMNO)
+  const dataItemQuo = await Item.find({ itemNo: { $in: ids } }).lean()
 
-  //   const createNewItem = async (fina) => {
-  //     const newData = await newItem(fina)
+  const createNewItem = async (fina) => {
+    const newData = await NewItem(fina)
 
-  //     return new Item(newData).save()
-  //   }
+    return new Item(newData).save()
+  }
+  const promiseCreate = [],
+    promiseUpdate = []
 
-  //   dataFina.map((fina) => {
-  //     const dataQuo = dataItemQuo.find(
-  //       (data) => data.itemNo === String(fina.ID),
-  //     )
+  data.map((fina) => {
+    const dataQuo = dataItemQuo.find(
+      (data) => data.itemNo === String(fina.ITEMNO),
+    )
 
-  //     if (dataQuo) {
-  //       if (dataQuo.stockSMI !== fina.STOCKSMI) {
-  //         promiseUpdate.push(
-  //           Item.findOneAndUpdate(
-  //             { itemNo: String(fina.ID) },
-  //             { stockSMI: fina.STOCKSMI },
-  //           ),
-  //         )
-  //       }
-  //     } else {
-  //       promiseCreate.push(createNewItem(fina))
-  //     }
+    if (dataQuo) {
+      if (dataQuo.stockSMI !== fina.STOCKSMI) {
+        promiseUpdate.push(
+          Item.findOneAndUpdate(
+            { itemNo: String(fina.ITEMNO) },
+            { stockSMI: fina.STOCKSMI },
+          ),
+        )
+      }
+    } else {
+      promiseCreate.push(createNewItem(fina))
+    }
 
-  //     return true
-  //   })
-  // }
+    return true
+  })
 
-  // await Promise.all(promiseCreate)
-  // await Promise.all(promiseUpdate)
-
-  // disconnectFromDB()
+  await Promise.all(promiseCreate)
+  await Promise.all(promiseUpdate)
 
   return {
-    // total: sumData,
-    // newData: promiseCreate.length,
-    // newUpdateStock: promiseUpdate.length,
-    message: 'Success',
+    total,
+    newData: promiseCreate.length,
+    newUpdateStock: promiseUpdate.length,
+    message: SUCCESS,
   }
-}
-
-const CRUD = {
-  create: true,
-  edit: true,
-  delete: true,
-  print: true,
-}
-const newUser = (user) => {
-  let authorizeUser = {}
-
-  if (user.USERLEVEL === 0) {
-    authorizeUser = {
-      item: CRUD,
-      itemCategory: CRUD,
-      customer: CRUD,
-      custCategory: CRUD,
-      price: CRUD,
-      salesman: CRUD,
-      user: CRUD,
-      itemStock: CRUD,
-      quotation: CRUD,
-      priceApproval: CRUD,
-      salesOrder: CRUD,
-      importExcel: CRUD,
-    }
-  } else if (user.USERLEVEL === 2) {
-    authorizeUser.quotation = CRUD
-    authorizeUser.salesOrder = CRUD
-  }
-  const newData = {
-    userName: user.USERNAME,
-    encryptedPassword: user.USERNAME,
-    userId: user.ID,
-    profile: {
-      fullName: user.FULLNAME,
-      userLevel: user.USERLEVEL,
-    },
-    authorize: authorizeUser,
-  }
-
-  return newData
 }
 
 const SyncMasterUser = async (user) => {
-  const token = jsonwebtoken.sign(
-    { id: user.id, userName: user.userName },
-    JWT_SECRET,
-    {
-      expiresIn: '5m',
-    },
-  )
+  const token = JwtSign(user)
   const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/sync-user`), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `${token}`,
     },
+  }).catch((err) => {
+    return { fail: true, err }
   })
+
+  if (dataFina.fail) {
+    return { total: 0, newData: 0, message: FAIL }
+  }
 
   const { data, total } = await dataFina.json()
   const ids = data.map((fina) => fina.ID)
@@ -394,7 +160,7 @@ const SyncMasterUser = async (user) => {
   )
 
   filterDataFinaNotExistsInMongo.map(async (data) => {
-    const newData = await newUser(data)
+    const newData = await NewUser(data)
 
     return new User(newData).save()
   })
@@ -402,95 +168,67 @@ const SyncMasterUser = async (user) => {
   return {
     total,
     newData: filterDataFinaNotExistsInMongo.length,
-    message: 'Success',
+    message: SUCCESS,
   }
 }
 
-const newCustomer = async (customer) => {
-  const customerType = customer.CUSTOMERTYPEID
-    ? await CustomerType.findOne(
-        { typeId: customer.CUSTOMERTYPEID },
-        { _id: 1 },
-      )
-    : {}
-  const salesman = customer.SALESMANID
-    ? await Salesman.findOne({ salesmanId: customer.SALESMANID }, { _id: 1 })
-    : {}
-  const term = customer.TERMSID
-    ? await Term.findOne({ termId: customer.TERMSID }, { _id: 1 })
-    : {}
-  const newData = {
-    customerId: customer.ID,
-    personNo: customer.PERSONNO,
-    name: customer.NAME,
-    typeId: customerType._id,
-    address: {
-      addressLine1: customer.ADDRESSLINE1,
-      addressLine2: customer.ADDRESSLINE2,
-      city: customer.CITY,
-      stateProve: customer.STATEPROVE,
-      zipCode: customer.ZIPCODE,
-      country: customer.COUNTRY,
+const SyncMasterCustomer = async (user) => {
+  const token = JwtSign(user)
+  const dataFina = await fetch(
+    normalizeUrl(`${FINA_SMI_URI}/fina/sync-customer`),
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `${token}`,
+      },
     },
-    contact: customer.CONTACT,
-    phone: customer.PHONE,
-    email: customer.EMAIL,
-    creditLimit: customer.CREDITLIMIT,
-    note: customer.NOTES,
-    outstandingAR: 0,
-    priceType: [],
-    salesman: salesman._id,
-    term: term._id,
-    isTax: customer.TAX1ID !== null,
-  }
-
-  return newData
-}
-
-const SyncMasterCustomer = async () => {
-  const limit = 2 // default will set 200
-  let query = `SELECT count(*) FROM PERSONDATA p where p.PersonType=0`
-  const [{ COUNT: sumData }] = await QueryToDB(query)
-
-  query = `SELECT FIRST ? SKIP ? p.ID, p.PERSONNO, p.NAME, p.CUSTOMERTYPEID,
-  p.ADDRESSLINE1, p.ADDRESSLINE2, p.CITY, p.STATEPROV, p.ZIPCODE,
-  p.COUNTRY, p.CONTACT, p.PHONE, p.EMAIL, p.CREDITLIMIT,
-  p.NOTES, p.TAX1ID, p.TERMSID, p.SALESMANID from PERSONDATA p
-  where p.PERSONTYPE=0`
-
-  const filterDataCreated = async (skip) => {
-    const dataFina = await QueryToDB(query, [limit, skip])
-    const ids = dataFina.map((data) => data.ID)
-    const existData = await Customer.find({ customerId: { $in: ids } }).lean()
-    const filtered = dataFina.filter(
-      (fina) => !existData.find((data) => data.customerId === fina.ID),
-    )
-
-    return filtered
-  }
-
-  return DoProccessData({
-    limit,
-    sumData,
-    Collection: Customer,
-    filterDataCreated,
-    newDataObj: newCustomer,
+  ).catch((err) => {
+    return { fail: true, err }
   })
+
+  if (dataFina.fail) {
+    return { total: 0, newData: 0, message: FAIL }
+  }
+  const { data, total } = await dataFina.json()
+  const ids = data.map((fina) => fina.ID)
+  const existData = await Customer.find({ customerId: { $in: ids } }).lean()
+  const filterDataFinaNotExistsInMongo = data.filter(
+    (fina) => !existData.find((data) => data.customerId === fina.ID),
+  )
+
+  filterDataFinaNotExistsInMongo.map(async (data) => {
+    const newData = await NewCustomer(data)
+
+    return new Customer(newData).save()
+  })
+
+  return {
+    total,
+    newData: filterDataFinaNotExistsInMongo.length,
+    message: SUCCESS,
+  }
 }
 
-const SyncMasterCustType = async () => {
-  let query = `SELECT count(*) FROM CUSTTYPE`
-  const [{ COUNT: sumData }] = await QueryToDB(query)
+const SyncMasterCustType = async (user) => {
+  const token = JwtSign(user)
+  const dataFina = await fetch(
+    normalizeUrl(`${FINA_SMI_URI}/fina/sync-custtype`),
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
+      },
+    },
+  ).catch((err) => {
+    return { fail: true, err }
+  })
 
-  query = `SELECT ct.CUSTOMERTYPEID as ID, ct.TYPENAME
-  FROM CUSTTYPE ct`
-
-  const findById = (ids) => {
-    const findId = { typeId: { $in: ids } }
-
-    return findId
+  if (dataFina.fail) {
+    return { total: 0, newData: 0, message: FAIL }
   }
-  const compareId = (data, fina) => data.typeId === fina.ID
+  const { data, total } = await dataFina.json()
   const newCustType = (data) => {
     const newData = {
       typeId: data.ID,
@@ -500,46 +238,50 @@ const SyncMasterCustType = async () => {
     return newData
   }
 
-  const dataFina = await QueryToDB(query)
-  const ids = dataFina.map((data) => data.ID)
-  const existData = await CustomerType.find(findById(ids)).lean()
-  const dataNeedCreated = dataFina.filter(
-    (fina) => !existData.find((data) => compareId(data, fina)),
-  )
-
   const doPromises = []
 
-  dataNeedCreated.map((data) => {
-    const newData = newCustType(data)
-    const dataSaved = new CustomerType(newData).save()
-
-    doPromises.push(dataSaved)
-
-    return true
+  data.map((fina) => {
+    return doPromises.push(
+      CustomerType.findOneAndUpdate({ typeId: fina.ID }, newCustType(fina), {
+        upsert: true,
+        rawResult: true,
+      }).lean(),
+    )
   })
-  await Promise.all(doPromises)
 
-  disconnectFromDB()
+  const results = await Promise.all(doPromises)
+  const newData = results.reduce((prev, curr) => {
+    const value = curr.lastErrorObject.updatedExisting ? 0 : 1
+
+    return prev + value
+  }, 0)
 
   return {
-    total: sumData,
-    newData: dataNeedCreated.length,
-    message: 'Success',
+    total,
+    newData,
+    message: SUCCESS,
   }
 }
 
-const SyncMasterSalesman = async () => {
-  let query = `SELECT count(*) FROM SALESMAN`
-  const [{ COUNT: sumData }] = await QueryToDB(query)
+const SyncMasterSalesman = async (user) => {
+  const token = JwtSign(user)
+  const dataFina = await fetch(
+    normalizeUrl(`${FINA_SMI_URI}/fina/sync-salesman`),
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
+      },
+    },
+  ).catch((err) => {
+    return { fail: true, err }
+  })
 
-  query = `Select s.SALESMANID as ID, s.FIRSTNAME, s.LASTNAME from SALESMAN s`
-
-  const findById = (ids) => {
-    const findId = { salesmanId: { $in: ids } }
-
-    return findId
+  if (dataFina.fail) {
+    return { total: 0, newData: 0, message: FAIL }
   }
-  const compareId = (data, fina) => data.salesmanId === fina.ID
+  const { data, total } = await dataFina.json()
   const newSalesman = (data) => {
     const newData = {
       salesmanId: data.ID,
@@ -549,47 +291,47 @@ const SyncMasterSalesman = async () => {
 
     return newData
   }
-
-  const dataFina = await QueryToDB(query)
-  const ids = dataFina.map((data) => data.ID)
-  const existData = await Salesman.find(findById(ids)).lean()
-  const dataNeedCreated = dataFina.filter(
-    (fina) => !existData.find((data) => compareId(data, fina)),
-  )
-
   const doPromises = []
 
-  dataNeedCreated.map((data) => {
-    const newData = newSalesman(data)
-    const dataSaved = new Salesman(newData).save()
-
-    doPromises.push(dataSaved)
-
-    return true
+  data.map((fina) => {
+    return doPromises.push(
+      Salesman.findOneAndUpdate({ salesmanId: fina.ID }, newSalesman(fina), {
+        upsert: true,
+        rawResult: true,
+      }),
+    )
   })
-  await Promise.all(doPromises)
 
-  disconnectFromDB()
+  const results = await Promise.all(doPromises)
+  const newData = results.reduce((prev, curr) => {
+    const value = curr.lastErrorObject.updatedExisting ? 0 : 1
+
+    return prev + value
+  }, 0)
 
   return {
-    total: sumData,
-    newData: dataNeedCreated.length,
-    message: 'Success',
+    total,
+    newData,
+    message: SUCCESS,
   }
 }
 
-const SyncMasterTerm = async () => {
-  let query = `SELECT count(*) FROM TERMOPMT`
-  const [{ COUNT: sumData }] = await QueryToDB(query)
+const SyncMasterTerm = async (user) => {
+  const token = JwtSign(user)
+  const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/sync-term`), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
+    },
+  }).catch((err) => {
+    return { fail: true, err }
+  })
 
-  query = `select t.TERMID as ID, t.TERMNAME, t.TERMMEMO from TERMOPMT t`
-
-  const findById = (ids) => {
-    const findId = { termId: { $in: ids } }
-
-    return findId
+  if (dataFina.fail) {
+    return { total: 0, newData: 0, message: FAIL }
   }
-  const compareId = (data, fina) => data.termId === fina.ID
+  const { data, total } = await dataFina.json()
   const newTerm = (data) => {
     const newData = {
       termId: data.ID,
@@ -599,36 +341,32 @@ const SyncMasterTerm = async () => {
 
     return newData
   }
-
-  const dataFina = await QueryToDB(query)
-  const ids = dataFina.map((data) => data.ID)
-  const existData = await Term.find(findById(ids)).lean()
-  const dataNeedCreated = dataFina.filter(
-    (fina) => !existData.find((data) => compareId(data, fina)),
-  )
-
   const doPromises = []
 
-  dataNeedCreated.map((data) => {
-    const newData = newTerm(data)
-    const dataSaved = new Term(newData).save()
-
-    doPromises.push(dataSaved)
-
-    return true
+  data.map((fina) => {
+    return doPromises.push(
+      Term.findOneAndUpdate({ termId: fina.ID }, newTerm(fina), {
+        upsert: true,
+        rawResult: true,
+      }),
+    )
   })
-  await Promise.all(doPromises)
 
-  disconnectFromDB()
+  const results = await Promise.all(doPromises)
+  const newData = results.reduce((prev, curr) => {
+    const value = curr.lastErrorObject.updatedExisting ? 0 : 1
+
+    return prev + value
+  }, 0)
 
   return {
-    total: sumData,
-    newData: dataNeedCreated.length,
-    message: 'Success',
+    total,
+    newData,
+    message: SUCCESS,
   }
 }
 
-const GetMasterItem = async (query) => {
+const GetMasterItem = async (query, user) => {
   const { skip, limit, category, itemNo, name, priceType } = await joi
     .object({
       category: joi.string().optional(),
@@ -654,20 +392,30 @@ const GetMasterItem = async (query) => {
     .deepPopulate(['category'])
     .lean()
 
-  const queryItemFina = `SELECT count(*) FROM ITEM i WHERE i.SUSPENDED=0`
-  const [{ COUNT: sumData }] = await QueryToDB(queryItemFina)
+  const token = JwtSign(user)
+  const dataFina = await fetch(
+    normalizeUrl(`${FINA_SMI_URI}/fina/so-outstanding`),
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
+      },
+    },
+  ).catch((err) => {
+    return { fail: true, err }
+  })
+
+  if (dataFina.fail) {
+    return { items: [], differentData: 0, message: FAIL }
+  }
+  const { sumData, outstandingOrders } = await dataFina.json()
   const itemCount = await Item.countDocuments()
   let differentData = 0
 
   if (sumData !== itemCount) {
     differentData = Math.abs(sumData - itemCount)
   }
-  const queryOutstandingOrder = `select sd.ITEMNO, SUM(sd.QUANTITY) as OutstandingOrder 
-  from SO s left join SODET sd on s.SOID=sd.SOID 
-  where s.SODATE = (select date 'Now' from rdb$database)
-  group by sd.ITEMNO`
-
-  const outstandingOrders = await QueryToDB(queryOutstandingOrder)
 
   items.map((item) => {
     item.stockSMI = item.stockSMI ? item.stockSMI : 0
@@ -684,34 +432,10 @@ const GetMasterItem = async (query) => {
     return item
   })
 
-  return { items, differentData }
-}
-
-const GetMasterUsers = async (query) => {
-  const { skip, limit, q } = await joi
-    .object({
-      q: joi.string().optional(),
-      skip: joi.number().min(0).max(1000).default(0),
-      limit: joi.number().min(1).max(200).default(5),
-    })
-    .validateAsync(query)
-
-  const users = await User.find({
-    $or: [
-      { userName: new RegExp(q, 'gi') },
-      { 'profile.fullName': new RegExp(q, 'gi') },
-    ],
-  })
-    .sort({ _id: -1 })
-    .skip(skip * limit)
-    .limit(limit)
-    .lean()
-
-  return users
+  return { items, differentData, message: SUCCESS }
 }
 
 module.exports = {
-  CreateSO,
   SyncMasterItem,
   SyncMasterUser,
   SyncMasterItemCategory,
@@ -720,5 +444,4 @@ module.exports = {
   SyncMasterSalesman,
   SyncMasterTerm,
   GetMasterItem,
-  GetMasterUsers,
 }

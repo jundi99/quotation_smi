@@ -6,7 +6,7 @@ const resolvers = {
     async GetItem(_, { input }, { user }) {
       await ValidateUser(user)
 
-      return fina.GetMasterItem(input)
+      return fina.GetMasterItem(input, user)
     },
   },
 }

@@ -41,27 +41,27 @@ const resolvers = {
     async SyncItemCategory(_, args, { user }) {
       await ValidateUser(user)
 
-      return fina.SyncMasterItemCategory()
+      return fina.SyncMasterItemCategory(user)
     },
     async SyncCustomer(_, args, { user }) {
       await ValidateUser(user)
 
-      return fina.SyncMasterCustomer()
+      return fina.SyncMasterCustomer(user)
     },
     async SyncCustType(_, args, { user }) {
       await ValidateUser(user)
 
-      return fina.SyncMasterCustType()
+      return fina.SyncMasterCustType(user)
     },
     async SyncSalesman(_, args, { user }) {
       await ValidateUser(user)
 
-      return fina.SyncMasterSalesman()
+      return fina.SyncMasterSalesman(user)
     },
     async SyncTerm(_, args, { user }) {
       await ValidateUser(user)
 
-      return fina.SyncMasterTerm()
+      return fina.SyncMasterTerm(user)
     },
   },
 }

@@ -42,7 +42,7 @@ module.exports = {
     'max-depth': 'error',
     'max-lines-per-function': [
       'warn',
-      { max: 50, skipComments: true, skipBlankLines: true },
+      { max: 80, skipComments: true, skipBlankLines: true },
     ],
     'max-nested-callbacks': 'error',
     'max-params': 'off',
