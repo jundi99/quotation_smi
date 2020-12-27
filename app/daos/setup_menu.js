@@ -34,15 +34,6 @@ const importExcel = {
     },
     {
       children: [],
-      icon: 'customer_type',
-      _id: ObjectId(),
-      title: 'Customer Type',
-      translate: 'Tipe Pelanggan',
-      type: 'import',
-      url: 'SyncCustType',
-    },
-    {
-      children: [],
       icon: 'salesman',
       _id: ObjectId(),
       title: 'Salesman',

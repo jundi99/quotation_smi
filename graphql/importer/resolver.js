@@ -48,11 +48,6 @@ const resolvers = {
 
       return fina.SyncMasterCustomer(user)
     },
-    async SyncCustType(_, args, { user }) {
-      await ValidateUser(user)
-
-      return fina.SyncMasterCustType(user)
-    },
     async SyncSalesman(_, args, { user }) {
       await ValidateUser(user)
 
