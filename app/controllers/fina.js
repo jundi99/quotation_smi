@@ -35,7 +35,7 @@ const SyncMasterItemCategory = async (user) => {
     return { fail: true, err }
   })
 
-  if (dataFina.fail) {
+  if (dataFina.fail || dataFina.ok === false) {
     return { total: 0, newData: 0, message: FAIL }
   }
   const { data, total } = await dataFina.json()
@@ -89,7 +89,7 @@ const SyncMasterItem = async (opt, user) => {
     return { fail: true, err }
   })
 
-  if (dataFina.fail) {
+  if (dataFina.fail || dataFina.ok === false) {
     return { total: 0, newData: 0, newUpdateStock: 0, message: FAIL }
   }
   const { data, total } = await dataFina.json()
@@ -148,7 +148,7 @@ const SyncMasterUser = async (user) => {
     return { fail: true, err }
   })
 
-  if (dataFina.fail) {
+  if (dataFina.fail || dataFina.ok === false) {
     return { total: 0, newData: 0, message: FAIL }
   }
 
@@ -187,7 +187,7 @@ const SyncMasterCustomer = async (user) => {
     return { fail: true, err }
   })
 
-  if (dataFina.fail) {
+  if (dataFina.fail || dataFina.ok === false) {
     return { total: 0, newData: 0, message: FAIL }
   }
   const { data, total } = await dataFina.json()
@@ -225,7 +225,7 @@ const SyncMasterCustType = async (user) => {
     return { fail: true, err }
   })
 
-  if (dataFina.fail) {
+  if (dataFina.fail || dataFina.ok === false) {
     return { total: 0, newData: 0, message: FAIL }
   }
   const { data, total } = await dataFina.json()
@@ -278,7 +278,7 @@ const SyncMasterSalesman = async (user) => {
     return { fail: true, err }
   })
 
-  if (dataFina.fail) {
+  if (dataFina.fail || dataFina.ok === false) {
     return { total: 0, newData: 0, message: FAIL }
   }
   const { data, total } = await dataFina.json()
@@ -328,7 +328,7 @@ const SyncMasterTerm = async (user) => {
     return { fail: true, err }
   })
 
-  if (dataFina.fail) {
+  if (dataFina.fail || dataFina.ok === false) {
     return { total: 0, newData: 0, message: FAIL }
   }
   const { data, total } = await dataFina.json()
@@ -406,7 +406,7 @@ const GetMasterItem = async (query, user) => {
     return { fail: true, err }
   })
 
-  if (dataFina.fail) {
+  if (dataFina.fail || dataFina.ok === false) {
     return { items: [], differentData: 0, message: FAIL }
   }
   const { sumData, outstandingOrders } = await dataFina.json()
