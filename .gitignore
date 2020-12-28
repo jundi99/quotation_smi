@@ -106,3 +106,5 @@ dist
 
 # Visual Studio Code config
 .vscode/
+
+public/file

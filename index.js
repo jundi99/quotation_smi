@@ -36,7 +36,8 @@ app.use(auth)
 app.get('/', (req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/html' })
   res.write(
-    '<form action="upload/item" method="post" enctype="multipart/form-data">',
+    // '<form action="upload/item" method="post" enctype="multipart/form-data">',
+    '<form action="upload/price-contract" method="post" enctype="multipart/form-data">',
   )
   res.write('<input type="file" name="filetoupload"><br>')
   res.write('<input type="submit">')

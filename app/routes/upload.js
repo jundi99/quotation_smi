@@ -8,3 +8,4 @@ module.exports = (express) =>
       res.send('respond with a resource')
     })
     .post('/item', uploadFina.XLSItem)
+    .post('/price-contract', uploadFina.XLSPriceContract)

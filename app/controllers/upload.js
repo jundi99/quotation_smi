@@ -2,6 +2,7 @@ const { log, table } = console
 const {
   SMIModels: { Item },
 } = require('../daos')
+
 const XLSItem = (req, res, next) => {
   try {
     const formidable = require('formidable')
@@ -63,6 +64,55 @@ const XLSItem = (req, res, next) => {
   }
 }
 
+const XLSPriceContract = (req, res, next) => {
+  try {
+    const formidable = require('formidable')
+    const form = formidable({ multiples: true })
+    const fs = require('fs')
+
+    form.parse(req, (err, fields, files) => {
+      if (err) {
+        throw err
+      }
+      const oldpath = files.filetoupload.path
+      const newpath = `./public/file/${files.filetoupload.name}`
+
+      fs.rename(oldpath, newpath, (err) => {
+        if (err) {
+          throw err
+        }
+        const xlsxFile = require('read-excel-file/node')
+
+        xlsxFile(`./public/file/${files.filetoupload.name}`).then((rows) => {
+          rows.shift()
+          const listRecord = rows.map((row) => {
+            const data = {
+              itemNo: row[0],
+              qtyPack: row[1],
+              sellingPrice: row[2],
+              moreQty: row[3],
+              lessQty: row[4],
+              equalQty: row[5],
+            }
+
+            return data
+          })
+
+          log(rows)
+          table(rows)
+
+          return res.json({ data: listRecord })
+        })
+      })
+    })
+
+    return true
+  } catch (error) {
+    return next(error)
+  }
+}
+
 module.exports = {
   XLSItem,
+  XLSPriceContract,
 }
