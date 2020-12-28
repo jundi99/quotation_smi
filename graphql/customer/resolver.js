@@ -14,6 +14,16 @@ const resolvers = {
 
       return customer.GetCustomer(input)
     },
+    async GetSalesmen(_, { input }, { user }) {
+      await ValidateUser(user)
+
+      return customer.GetSalesmen(input)
+    },
+    async GetTerms(_, { input }, { user }) {
+      await ValidateUser(user)
+
+      return customer.GetTerms(input)
+    },
   },
   Mutation: {
     async UpsertCustomer(_, { input }, { user }) {

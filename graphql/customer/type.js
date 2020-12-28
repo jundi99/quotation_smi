@@ -72,9 +72,17 @@ module.exports = `
     personNo: String
   }
 
+  input GetMasterInput {
+    q: String
+    skip: Int
+    limit: Int
+  }  
+
   type Query {
     GetCustomers(input: GetCustomersInput): GetCustomersResponse
     GetCustomer(input: PersonNoInput): Customer
+    GetSalesmen(input: GetMasterInput): [Salesman]
+    GetTerms(input: GetMasterInput): [Term]
   }
 
   type DeleteCustomerResponse {

@@ -69,6 +69,7 @@ module.exports = `
     skip: Int
     limit: Int
   }
+  
   type Query {
     CurrentUserMenu: [MenuResponse]
     GetUser: User

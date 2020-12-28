@@ -1,5 +1,5 @@
 const {
-  SMIModels: { Customer, CustCategory },
+  SMIModels: { Customer, CustCategory, Salesman, Term },
 } = require('../daos')
 const joi = require('joi')
 
@@ -92,10 +92,55 @@ const UpsertCustCategory = async (body) => {
   return newData
 }
 
+const GetSalesmen = async (query) => {
+  const { skip, limit, q } = await joi
+    .object({
+      q: joi.string().optional(),
+      skip: joi.number().min(0).max(1000).default(0),
+      limit: joi.number().min(1).max(200).default(5),
+    })
+    .validateAsync(query)
+
+  const salesmen = await Salesman.find({
+    $or: [
+      { lastName: new RegExp(q, 'gi') },
+      { firstName: new RegExp(q, 'gi') },
+    ],
+  })
+    .sort({ _id: -1 })
+    .skip(skip * limit)
+    .limit(limit)
+    .lean()
+
+  return salesmen
+}
+
+const GetTerms = async (query) => {
+  const { skip, limit, q } = await joi
+    .object({
+      q: joi.string().optional(),
+      skip: joi.number().min(0).max(1000).default(0),
+      limit: joi.number().min(1).max(200).default(5),
+    })
+    .validateAsync(query)
+
+  const terms = await Term.find({
+    $or: [{ name: new RegExp(q, 'gi') }],
+  })
+    .sort({ _id: -1 })
+    .skip(skip * limit)
+    .limit(limit)
+    .lean()
+
+  return terms
+}
+
 module.exports = {
   GetCustomers,
   GetCustomer,
   UpsertCustomer,
   DeleteCustomer,
   UpsertCustCategory,
+  GetSalesmen,
+  GetTerms,
 }

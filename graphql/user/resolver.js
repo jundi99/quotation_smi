@@ -9,8 +9,8 @@ const {
   CurrentMenu,
   ValidateUser,
   UpdateUserById,
+  GetUsers,
 } = require('../../app/controllers/user')
-const fina = require('../../app/controllers/fina')
 
 const resolvers = {
   Query: {
@@ -31,7 +31,7 @@ const resolvers = {
         throw new Error('Maaf, anda tidak memiliki akses!')
       }
 
-      return fina.GetMasterUsers(input)
+      return GetUsers(input)
     },
   },
 

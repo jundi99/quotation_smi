@@ -52,13 +52,13 @@ module.exports = `
     totalStockReadySell: Float
   }
 
-  type GetItemResponse {
+  type GetItemsResponse {
     items: [Item]
     differentData: Int
     message: String
   }
   
-  input GetItemInput {
+  input GetItemsInput {
     category: ID
     itemNo: String
     name: String
@@ -67,7 +67,14 @@ module.exports = `
     limit: Int
   }
 
+  input GetItemCategoriesInput {
+    q: String
+    skip: Int
+    limit: Int
+  }
+
   type Query {
-    GetItem(input: GetItemInput): GetItemResponse
+    GetItems(input: GetItemsInput): GetItemsResponse
+    GetItemCategories(input: GetItemCategoriesInput): [ItemCategory]
   }
 `

@@ -305,7 +305,7 @@ const SyncMasterTerm = async (user) => {
   }
 }
 
-const GetMasterItem = async (query, user) => {
+const GetItems = async (query, user) => {
   const { skip, limit, category, itemNo, name, priceType } = await joi
     .object({
       category: joi.string().optional(),
@@ -381,5 +381,5 @@ module.exports = {
   SyncMasterCustomer,
   SyncMasterSalesman,
   SyncMasterTerm,
-  GetMasterItem,
+  GetItems,
 }

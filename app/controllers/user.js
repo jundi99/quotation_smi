@@ -64,7 +64,7 @@ const UpdateUserById = async (_id, body) => {
   return dataResponse
 }
 
-const GetMasterUsers = async (query) => {
+const GetUsers = async (query) => {
   const { skip, limit, q } = await joi
     .object({
       q: joi.string().optional(),
@@ -91,5 +91,5 @@ module.exports = {
   ValidateUser,
   CurrentMenu,
   UpdateUserById,
-  GetMasterUsers,
+  GetUsers,
 }
