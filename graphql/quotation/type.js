@@ -1,4 +1,5 @@
 module.exports.Quotation = `
+  _id: ID
   customer: ID
   quoNo: String
   quoDate: String
