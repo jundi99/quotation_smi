@@ -83,26 +83,39 @@ const XLSPriceContract = (req, res, next) => {
         }
         const xlsxFile = require('read-excel-file/node')
 
-        xlsxFile(`./public/file/${files.filetoupload.name}`).then((rows) => {
-          rows.shift()
-          const listRecord = rows.map((row) => {
-            const data = {
-              itemNo: row[0],
-              qtyPack: row[1],
-              sellingPrice: row[2],
-              moreQty: row[3],
-              lessQty: row[4],
-              equalQty: row[5],
+        xlsxFile(`./public/file/${files.filetoupload.name}`).then(
+          async (rows) => {
+            rows.shift()
+            const listExists = []
+            const notExists = []
+
+            for (let index = 0; index < rows.length; index++) {
+              const row = rows[index]
+              const itemNo = row[0]
+              const isItemExist = await Item.findOne({ itemNo }).lean()
+
+              if (isItemExist) {
+                const data = {
+                  itemNo: row[0],
+                  qtyPack: row[1],
+                  sellingPrice: row[2],
+                  moreQty: row[3],
+                  lessQty: row[4],
+                  equalQty: row[5],
+                }
+
+                listExists.push(data)
+              } else {
+                notExists.push(itemNo)
+              }
             }
 
-            return data
-          })
+            log(rows)
+            table(rows)
 
-          log(rows)
-          table(rows)
-
-          return res.json({ data: listRecord })
-        })
+            return res.json({ data: listExists, notExists })
+          },
+        )
       })
     })
 

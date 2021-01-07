@@ -4,7 +4,7 @@ const {
 // const bcrypt = require('bcrypt')
 const jsonwebtoken = require('jsonwebtoken')
 const { JWT_SECRET } = process.env
-// const StandardError = require('../../utils/standard_error')
+const StandardError = require('../../utils/standard_error')
 const {
   CurrentMenu,
   ValidateUser,
@@ -20,7 +20,7 @@ const resolvers = {
 
         return CurrentMenu(currentUser)
       }
-      throw new Error('Maaf, anda tidak memiliki akses!')
+      throw new StandardError('Maaf, anda tidak memiliki akses!')
     },
     GetUser(_, args, { user }) {
       return ValidateUser(user)
@@ -28,7 +28,7 @@ const resolvers = {
     async GetUsers(_, { input }, { user }) {
       user = await ValidateUser(user)
       if (user.profile.userLevel !== 0) {
-        throw new Error('Maaf, anda tidak memiliki akses!')
+        throw new StandardError('Maaf, anda tidak memiliki akses!')
       }
 
       return GetUsers(input)
@@ -57,7 +57,7 @@ const resolvers = {
     async UpdateUserById(_, { _id, input }, { user }) {
       user = await ValidateUser(user)
       if (user.profile.userLevel !== 0) {
-        throw new Error('Maaf, anda tidak memiliki akses!')
+        throw new StandardError('Maaf, anda tidak memiliki akses!')
       }
 
       return UpdateUserById(_id, input)
@@ -66,7 +66,7 @@ const resolvers = {
       const user = await User.findOne({ userName: login })
 
       if (!user) {
-        throw new Error(
+        throw new StandardError(
           'User ini tidak ada. Harap pastikan untuk mengetik login yang benar.',
         )
       }
@@ -74,7 +74,7 @@ const resolvers = {
       const valid = await user.comparePassword(password)
 
       if (!valid) {
-        throw new Error('Password anda salah!')
+        throw new StandardError('Password anda salah!')
       }
 
       return {
