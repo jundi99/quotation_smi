@@ -1,5 +1,5 @@
 const { SMIDBConn } = require('../init/mongodb')
-const SMISchemas = require('../../schema_mongo')
+const SMISchemas = require('dbmodels_quotation')
 
 /**
  * model generator
