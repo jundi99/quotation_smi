@@ -124,6 +124,6 @@ module.exports = `
   type Mutation {
     #register(login: String!, password: String!): String
     Login(login: String!, password: String!): LoginResponse
-    UpdateUserById(_id: ID!, input: UpdateUserByIdInput): UpdateUserByIdResponse
+    UpdateUserById(userId: ID!, input: UpdateUserByIdInput): UpdateUserByIdResponse
   }
 `

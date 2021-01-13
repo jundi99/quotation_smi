@@ -48,11 +48,11 @@ const CurrentMenu = async (currentUser) => {
   return data
 }
 
-const UpdateUserById = async (_id, body) => {
-  const user = await User.findOne({ _id }).lean()
+const UpdateUserById = async (userId, body) => {
+  const user = await User.findOne({ userId }).lean()
 
   body = _.merge(user, body)
-  const userUpdated = await User.updateOne({ _id }, body).lean()
+  const userUpdated = await User.updateOne({ userId }, body).lean()
   const dataResponse = {
     success: false,
   }

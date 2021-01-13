@@ -54,13 +54,13 @@ const resolvers = {
     //     }
     //   )
     // },
-    async UpdateUserById(_, { _id, input }, { user }) {
+    async UpdateUserById(_, { userId, input }, { user }) {
       user = await ValidateUser(user)
       if (user.profile.userLevel !== 0) {
         throw new StandardError('Maaf, anda tidak memiliki akses!')
       }
 
-      return UpdateUserById(_id, input)
+      return UpdateUserById(userId, input)
     },
     async Login(_, { login, password }) {
       const user = await User.findOne({ userName: login })
