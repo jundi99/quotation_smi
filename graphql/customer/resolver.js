@@ -28,7 +28,7 @@ const resolvers = {
       await ValidateUser(user)
 
       return customer.GetCustCategories()
-    },    
+    },
   },
   Mutation: {
     async UpsertCustomer(_, { input }, { user }) {

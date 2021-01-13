@@ -58,7 +58,7 @@ const NewUser = (user) => {
     edit: true,
     delete: true,
     print: true,
-    view: true
+    view: true,
   }
 
   if (user.USERLEVEL === 2) {
@@ -78,7 +78,7 @@ const NewUser = (user) => {
       priceApproval: { name: 'Price Approval', ...CRUD },
       salesOrder: { name: 'Sales Order', ...CRUD },
       importExcel: { name: 'Import Excel', ...CRUD },
-    }    
+    }
   }
   const newData = {
     userName: user.USERNAME,

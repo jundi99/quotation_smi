@@ -145,5 +145,5 @@ module.exports = {
   UpsertCustCategory,
   GetSalesmen,
   GetTerms,
-  GetCustCategories
+  GetCustCategories,
 }
