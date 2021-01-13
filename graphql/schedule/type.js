@@ -15,7 +15,6 @@ module.exports = `
     fileXLS: String
   }
   type Query {
-    current: User
     GetSchedule: GetScheduleResponse
   }
 

@@ -97,6 +97,8 @@ module.exports = `
     edit: Boolean
     delete: Boolean
     print: Boolean
+    view: Boolean
+    name: String
   }
 
   input AuthorizeUserInput {
