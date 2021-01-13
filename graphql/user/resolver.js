@@ -27,7 +27,7 @@ const resolvers = {
     },
     async GetUsers(_, { input }, { user }) {
       user = await ValidateUser(user)
-      if (user.profile.userLevel !== 0) {
+      if (!user || user.profile.userLevel !== 0) {
         throw new StandardError('Maaf, anda tidak memiliki akses!')
       }
 

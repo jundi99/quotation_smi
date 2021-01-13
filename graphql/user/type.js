@@ -12,6 +12,8 @@ module.exports = `
     edit: Boolean
     delete: Boolean
     print: Boolean
+    view: Boolean
+    name: String
   }
 
   type AuthorizeUser {
@@ -20,7 +22,7 @@ module.exports = `
     customer: CRUD
     custCategory: CRUD
     price: CRUD
-    sales: CRUD
+    salesman: CRUD
     user: CRUD
     itemStock: CRUD
     quotation: CRUD
@@ -103,7 +105,7 @@ module.exports = `
     customer: CRUDInput
     custCategory: CRUDInput
     price: CRUDInput
-    sales: CRUDInput
+    salesman: CRUDInput
     user: CRUDInput
     itemStock: CRUDInput
     quotation: CRUDInput

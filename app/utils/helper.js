@@ -58,26 +58,27 @@ const NewUser = (user) => {
     edit: true,
     delete: true,
     print: true,
+    view: true
   }
 
-  if (user.USERLEVEL === 0) {
+  if (user.USERLEVEL === 2) {
+    authorizeUser.quotation = { name: 'Quotation', ...CRUD }
+    authorizeUser.salesOrder = { name: 'Sales Order', ...CRUD }
+  } else {
     authorizeUser = {
-      item: CRUD,
-      itemCategory: CRUD,
-      customer: CRUD,
-      custCategory: CRUD,
-      price: CRUD,
-      salesman: CRUD,
-      user: CRUD,
-      itemStock: CRUD,
-      quotation: CRUD,
-      priceApproval: CRUD,
-      salesOrder: CRUD,
-      importExcel: CRUD,
-    }
-  } else if (user.USERLEVEL === 2) {
-    authorizeUser.quotation = CRUD
-    authorizeUser.salesOrder = CRUD
+      item: { name: 'Item', ...CRUD },
+      itemCategory: { name: 'item Category', ...CRUD },
+      customer: { name: 'Customer', ...CRUD },
+      custCategory: { name: 'Customer Category', ...CRUD },
+      price: { name: 'Price', ...CRUD },
+      salesman: { name: 'Salesman', ...CRUD },
+      user: { name: 'User', ...CRUD },
+      itemStock: { name: 'Item Stock', ...CRUD },
+      quotation: { name: 'Quotation', ...CRUD },
+      priceApproval: { name: 'Price Approval', ...CRUD },
+      salesOrder: { name: 'Sales Order', ...CRUD },
+      importExcel: { name: 'Import Excel', ...CRUD },
+    }    
   }
   const newData = {
     userName: user.USERNAME,

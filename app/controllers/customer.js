@@ -21,7 +21,7 @@ const GetCustomers = async (query) => {
       ...(typeId ? { typeId } : {}),
       ...(isActive ? { isActive } : {}),
     })
-      .sort({ _id: -1 })
+      .sort({ customerId: 1 })
       .skip(skip * limit)
       .limit(limit)
       .deepPopulate(['typeId', 'salesman', 'term'])
@@ -107,7 +107,7 @@ const GetSalesmen = async (query) => {
       { firstName: new RegExp(q, 'gi') },
     ],
   })
-    .sort({ _id: -1 })
+    .sort({ salesmanId: 1 })
     .skip(skip * limit)
     .limit(limit)
     .lean()
@@ -127,13 +127,15 @@ const GetTerms = async (query) => {
   const terms = await Term.find({
     $or: [{ name: new RegExp(q, 'gi') }],
   })
-    .sort({ _id: -1 })
+    .sort({ termId: 1 })
     .skip(skip * limit)
     .limit(limit)
     .lean()
 
   return terms
 }
+
+const GetCustCategories = () => CustCategory.find({}).lean()
 
 module.exports = {
   GetCustomers,
@@ -143,4 +145,5 @@ module.exports = {
   UpsertCustCategory,
   GetSalesmen,
   GetTerms,
+  GetCustCategories
 }

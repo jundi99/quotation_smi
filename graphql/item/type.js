@@ -3,7 +3,6 @@ module.exports.Item = `
   name: String
   unit: String
   reserved: ItemReserved
-  minimumOrder: String
   price: PriceLevel
   quantity: Int
   category: ItemCategory

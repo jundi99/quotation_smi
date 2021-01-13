@@ -15,7 +15,7 @@ const GetItemCategories = async (query) => {
   const itemCategories = await ItemCategory.find({
     $or: [{ name: new RegExp(q, 'gi') }],
   })
-    .sort({ _id: -1 })
+    .sort({ categoryId: 1 })
     .skip(skip * limit)
     .limit(limit)
     .lean()

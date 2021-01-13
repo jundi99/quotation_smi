@@ -83,6 +83,7 @@ module.exports = `
     GetCustomer(input: PersonNoInput): Customer
     GetSalesmen(input: GetMasterInput): [Salesman]
     GetTerms(input: GetMasterInput): [Term]
+    GetCustCategories: [CustCategory]    
   }
 
   type DeleteCustomerResponse {

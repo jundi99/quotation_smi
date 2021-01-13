@@ -67,7 +67,7 @@ const UpdateUserById = async (_id, body) => {
 const GetUsers = async (query) => {
   const { skip, limit, q } = await joi
     .object({
-      q: joi.string().optional(),
+      q: joi.string().optional().allow(''),
       skip: joi.number().min(0).max(1000).default(0),
       limit: joi.number().min(1).max(200).default(5),
     })
@@ -79,7 +79,7 @@ const GetUsers = async (query) => {
       { 'profile.fullName': new RegExp(q, 'gi') },
     ],
   })
-    .sort({ _id: -1 })
+    .sort({ userId: 1 })
     .skip(skip * limit)
     .limit(limit)
     .lean()
