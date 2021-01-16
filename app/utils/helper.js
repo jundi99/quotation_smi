@@ -80,6 +80,17 @@ const NewUser = (user) => {
       importExcel: { name: 'Import Excel', ...CRUD },
     }
   }
+
+  switch (user.USERLEVEL) {
+    case 1:
+      nameLevel = 'User'
+      break
+    case 2:
+      nameLevel = 'Client'
+      break
+    default:
+      nameLevel = 'Admin'
+  }
   const newData = {
     userName: user.USERNAME,
     encryptedPassword: user.USERNAME,
@@ -87,6 +98,7 @@ const NewUser = (user) => {
     profile: {
       fullName: user.FULLNAME,
       userLevel: user.USERLEVEL,
+      nameLevel,
     },
     authorize: authorizeUser,
   }

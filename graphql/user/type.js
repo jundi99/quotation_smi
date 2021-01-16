@@ -34,13 +34,14 @@ module.exports = `
   type Profile {
     fullName: String
     userLevel: Int
+    nameLevel: String
   }
 
   type IpHistory {
-      _id: ID!
-      device_type: String
-      device_id: String
-      date: String
+    _id: ID!
+    device_type: String
+    device_id: String
+    date: String
   }
 
   type User {
