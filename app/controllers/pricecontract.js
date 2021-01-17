@@ -7,7 +7,7 @@ const fetch = require('node-fetch')
 const normalizeUrl = require('normalize-url')
 const { JwtSign } = require('../utils')
 const {
-  StatusMessage: { FAIL },
+  StatusMessage: { SUCCESS, FAIL },
 } = require('../constan')
 
 joi.objectId = require('joi-objectid')(joi)
@@ -114,7 +114,9 @@ const GetPriceTypes = async (user) => {
     return { data: [], message: FAIL }
   }
 
-  return { data: await dataFina.json(), message: FAIL }
+  const data = await dataFina.json()
+
+  return { ...data, message: SUCCESS }
 }
 
 module.exports = {
