@@ -4,11 +4,11 @@ const {
 const joi = require('joi')
 
 const GetCustomers = async (query) => {
-  const { skip, limit, name, personNo, typeId, isActive } = await joi
+  const { skip, limit, name, personNo, idType, isActive } = await joi
     .object({
       personNo: joi.string().optional(),
       name: joi.string().optional(),
-      typeId: joi.number().optional(),
+      idType: joi.number().optional(),
       isActive: joi.boolean().optional(),
       skip: joi.number().min(0).max(1000).default(0),
       limit: joi.number().min(1).max(200).default(5),
@@ -18,13 +18,13 @@ const GetCustomers = async (query) => {
     Customer.find({
       ...(personNo ? { personNo: new RegExp(personNo, 'gi') } : {}),
       ...(name ? { name: new RegExp(name, 'gi') } : {}),
-      ...(typeId ? { typeId } : {}),
+      ...(idType ? { idType } : {}),
       ...(isActive ? { isActive } : {}),
     })
       .sort({ customerId: 1 })
       .skip(skip * limit)
       .limit(limit)
-      .deepPopulate(['typeId', 'salesman', 'term'])
+      .deepPopulate(['idType', 'salesman', 'term'])
       .lean(),
     Customer.countDocuments(),
   ])
@@ -40,7 +40,7 @@ const UpsertCustomer = async (body) => {
       note: joi.string().optional(),
       isTax: joi.boolean().default(false),
       phone: joi.string().optional(),
-      typeId: joi.number().optional(),
+      idType: joi.number().optional(),
       image: joi.string().optional(),
       salesman: joi.number().optional(),
       isActive: joi.boolean().default(false),

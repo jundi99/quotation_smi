@@ -2,6 +2,13 @@ const {
   SMIModels: { PriceContract },
 } = require('../daos')
 const joi = require('joi')
+const { FINA_SMI_URI } = process.env
+const fetch = require('node-fetch')
+const normalizeUrl = require('normalize-url')
+const { JwtSign } = require('../utils')
+const {
+  StatusMessage: { FAIL },
+} = require('../constan')
 
 joi.objectId = require('joi-objectid')(joi)
 
@@ -42,7 +49,7 @@ const UpsertPriceContract = async (body) => {
       _id: joi.objectId().optional(),
       customerNames: joi.array().items(joi.string()).required(),
       contractPrice: joi.boolean().default(false),
-      typePrice: joi.string().optional(),
+      priceType: joi.string().optional(),
       startAt: joi.date(),
       endAt: joi.date(),
       note: joi.string().optional(),
@@ -88,9 +95,32 @@ const DeletePriceContract = async (body) => {
   return dataDeleted
 }
 
+const GetPriceTypes = async (user) => {
+  const token = JwtSign(user)
+  const dataFina = await fetch(
+    normalizeUrl(`${FINA_SMI_URI}/fina/price-type`),
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
+      },
+    },
+  ).catch((err) => {
+    return { fail: true, err }
+  })
+
+  if (dataFina.fail || dataFina.ok === false) {
+    return { data: [], message: FAIL }
+  }
+
+  return { data: await dataFina.json(), message: FAIL }
+}
+
 module.exports = {
   GetPriceContracts,
   GetPriceContract,
   UpsertPriceContract,
   DeletePriceContract,
+  GetPriceTypes,
 }

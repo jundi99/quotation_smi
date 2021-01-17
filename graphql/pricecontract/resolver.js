@@ -14,6 +14,11 @@ const resolvers = {
 
       return priceContract.GetPriceContract(input)
     },
+    async GetPriceTypes(_, args, { user }) {
+      await ValidateUser(user)
+
+      return priceContract.GetPriceTypes(user)
+    },
   },
   Mutation: {
     async UpsertPriceContract(_, { input }, { user }) {

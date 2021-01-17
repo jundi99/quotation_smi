@@ -2,7 +2,7 @@ module.exports.PriceContract = `
   _id: ID
   customerNames: [String]
   contractPrice: Boolean
-  typePrice: String
+  priceType: String
   startAt: String
   endAt: String
   note: String
@@ -38,9 +38,15 @@ module.exports = `
     _id: ID
   }
 
+  type GetPriceTypesResponse {
+    data: [String]
+    message: String
+  }
+
   type Query {
     GetPriceContracts(input: GetPriceContractsInput): GetPriceContractsResponse
     GetPriceContract(input: idPriceContractInput): PriceContract
+    GetPriceTypes: GetPriceTypesResponse
   }
 
   type DeletePriceContractResponse {

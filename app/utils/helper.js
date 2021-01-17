@@ -131,7 +131,7 @@ const NewCustomer = async (customer) => {
     creditLimit: customer.CREDITLIMIT,
     note: customer.NOTES,
     outstandingAR: 0,
-    priceType: [],
+    priceType: customer.PRICETYPE,
     salesman: salesman._id,
     term: term._id,
     isTax: customer.TAX1ID !== null,
