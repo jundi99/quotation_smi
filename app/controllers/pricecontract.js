@@ -24,7 +24,6 @@ const GetPriceContracts = async (query) => {
       .sort({ _id: -1 })
       .skip(skip * limit)
       .limit(limit)
-      .deepPopulate(['detail.item'])
       .lean(),
     PriceContract.countDocuments(),
   ])
@@ -54,11 +53,13 @@ const UpsertPriceContract = async (body) => {
       endAt: joi.date(),
       note: joi.string().optional(),
       fileXLS: joi.string().optional(),
-      detail: joi
+      details: joi
         .array()
         .items(
           joi.object({
-            item: joi.objectId().required(),
+            itemNo: joi.string().required(),
+            itemName: joi.string().required(),
+            unit: joi.string(),
             qtyPack: joi.number(),
             sellPrice: joi.number(),
             moreQty: joi.number(),

@@ -5,13 +5,16 @@ module.exports.PriceContract = `
   priceType: String
   startAt: String
   endAt: String
+  createdAt: String
   note: String
   fileXLS: String
 `
 
 module.exports = `
   type DetailContract {
-    item: ID
+    itemNo: String
+    itemName: String
+    unit: String
     qtyPack: Int
     sellPrice: Float
     moreQty: Int
@@ -21,7 +24,7 @@ module.exports = `
 
   type PriceContract {
     ${module.exports.PriceContract}
-    detail: [DetailContract]    
+    details: [DetailContract]    
   }
 
   input GetPriceContractsInput {
@@ -54,7 +57,9 @@ module.exports = `
   }
 
   input DetailContractInput {
-    item: ID
+    itemNo: String
+    itemName: String
+    unit: String
     qtyPack: Int
     sellPrice: Float
     moreQty: Int
@@ -64,7 +69,7 @@ module.exports = `
 
   input UpsertPriceContractInput {
     ${module.exports.PriceContract}    
-    detail: [DetailContractInput]
+    details: [DetailContractInput]
   }
 
   type Mutation {

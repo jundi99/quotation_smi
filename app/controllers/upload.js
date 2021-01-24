@@ -97,6 +97,8 @@ const XLSPriceContract = (req, res, next) => {
               if (isItemExist) {
                 const data = {
                   itemNo: row[0],
+                  itemName: isItemExist.name,
+                  unit: isItemExist.unit,
                   qtyPack: row[1],
                   sellingPrice: row[2],
                   moreQty: row[3],
