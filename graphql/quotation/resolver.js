@@ -14,6 +14,11 @@ const resolvers = {
 
       return quotation.GetQuotation(input)
     },
+    async GetDeliveryOption(_, args, { user }) {
+      await ValidateUser(user)
+
+      return quotation.GetDeliveryOption()
+    },
   },
   Mutation: {
     async UpsertQuotation(_, { input }, { user }) {

@@ -6,6 +6,7 @@ module.exports.Quotation = `
   deliveryDate: String
   payment: String
   delivery: String
+  deliveryCost: Int
   detail: [DetailQuotation]
   subTotal: Float
   totalOrder: Float
@@ -58,6 +59,7 @@ module.exports = `
     deliveryDate: String
     payment: String
     delivery: String
+    deliveryCost: Int
     detail: [DetailQuotationInput]
   }
 
@@ -65,9 +67,15 @@ module.exports = `
     _id: ID
   }
 
+  type DeliveryCost {
+    name: String
+    cost: Int
+  }
+
   type Query {
     GetQuotations(input: GetQuotationsInput): GetQuotationsResponse
     GetQuotation(input: QuoIdInput): Quotation
+    GetDeliveryOption: [DeliveryCost]
   }
 
   type DeleteQuotationResponse {

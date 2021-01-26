@@ -88,10 +88,8 @@ const XLSPriceContract = (req, res, next) => {
             rows.shift()
             const listExists = []
             const notExists = []
-
-            for (let index = 0; index < rows.length; index++) {
-              const row = rows[index]
-              const itemNo = row[0]
+            const doPromises = []
+            const setDataItems = async (itemNo, row) => {
               const isItemExist = await Item.findOne({ itemNo }).lean()
 
               if (isItemExist) {
@@ -112,6 +110,14 @@ const XLSPriceContract = (req, res, next) => {
               }
             }
 
+            for (let index = 0; index < rows.length; index++) {
+              const row = rows[index]
+              const itemNo = row[0]
+
+              doPromises.push(setDataItems(itemNo, row))
+            }
+
+            await Promise.all(doPromises)
             log(rows)
             table(rows)
 

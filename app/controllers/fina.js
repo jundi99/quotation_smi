@@ -1,5 +1,4 @@
 const { FINA_SMI_URI } = process.env
-const _ = require('lodash')
 const fetch = require('node-fetch')
 const normalizeUrl = require('normalize-url')
 const { JwtSign } = require('../utils')
@@ -126,6 +125,34 @@ const SyncMasterItem = async (opt, user) => {
     newUpdateStock: promiseUpdate.length,
     message: SUCCESS,
   }
+  // let doPromises = []
+
+  // data.map((fina) => doPromises.push(NewItem(fina)))
+  // const dataItem = await Promise.all(doPromises)
+
+  // doPromises = []
+
+  // dataItem.map((fina) => {
+  //   return doPromises.push(
+  //     Item.findOneAndUpdate({ itemNo: fina.itemNo }, fina, {
+  //       upsert: true,
+  //       rawResult: true,
+  //     }), //kelemahan cara ini ketika data tidak di isi maka tidak mengikuti default value schema
+  //   )
+  // })
+
+  // const results = await Promise.all(doPromises)
+  // const newData = results.reduce((prev, curr) => {
+  //   const value = curr.lastErrorObject.updatedExisting ? 0 : 1
+
+  //   return prev + value
+  // }, 0)
+
+  // return {
+  //   total,
+  //   newData,
+  //   message: SUCCESS,
+  // }
 }
 
 const SyncMasterUser = async (user) => {
@@ -357,8 +384,8 @@ const GetItems = async (query, user) => {
   }
 
   items.map((item) => {
-    item.stockSMI = item.stockSMI ? item.stockSMI : 0
-    item.stockSupplier = item.stockSupplier ? item.stockSupplier : 0
+    item.stockSMI = item.stockSMI
+    item.stockSupplier = item.stockSupplier
     item.totalStockReadySell = item.stockSMI + item.stockSupplier
     const outstandingData = outstandingOrders.find(
       (order) => String(order.ITEMNO) === item.itemNo,

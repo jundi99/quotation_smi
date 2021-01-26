@@ -72,8 +72,29 @@ module.exports = `
     limit: Int
   }
 
+  type ItemQuo {
+    itemNo: String
+    name: String
+    availableStock: String
+    price: Float
+    qtyPerPack: Int
+  }
+
+  input GetItemsQuoInput {
+    itemNo: String
+    name: String
+    skip: Int
+    limit: Int
+  }
+  
+  input GetStatusItemInput {
+    itemNo: String
+    quantity: Int
+  }
   type Query {
     GetItems(input: GetItemsInput): GetItemsResponse
     GetItemCategories(input: GetItemCategoriesInput): [ItemCategory]
+    GetItemsQuo(input: GetItemsQuoInput): [ItemQuo]
+    GetStatusItem(input: GetStatusItemInput): String
   }
 `

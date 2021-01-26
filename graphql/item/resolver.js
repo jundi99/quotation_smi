@@ -14,6 +14,16 @@ const resolvers = {
 
       return item.GetItemCategories(input)
     },
+    async GetItemsQuo(_, { input }, { user }) {
+      await ValidateUser(user)
+
+      return item.GetItemsQuo(input)
+    },
+    async GetStatusItem(_, { input }, { user }) {
+      await ValidateUser(user)
+
+      return item.GetStatusItem(input)
+    },
   },
 }
 

@@ -39,6 +39,7 @@ const UpsertQuotation = async (body) => {
       deliveryDate: joi.date().required(),
       payment: joi.string().required(),
       delivery: joi.string().required(),
+      deliveryCost: joi.number().required(),
       detail: joi
         .array()
         .items(
@@ -53,6 +54,9 @@ const UpsertQuotation = async (body) => {
           }),
         )
         .required(),
+      subTotal: joi.number().require(),
+      totalOrder: joi.number().require(),
+      note: joi.string().optional(),
     })
     .validateAsync(body)
   const newData = await Quotation.findOneAndUpdate(
@@ -86,9 +90,37 @@ const GetQuotation = async (body) => {
   return quotation
 }
 
+const GetDeliveryOption = () => {
+  const detailDelivery = [
+    {
+      name: 'Gosend',
+      cost: 10000,
+    },
+    {
+      name: 'GrabExpress',
+      cost: 20000,
+    },
+    {
+      name: 'JNE',
+      cost: 10000,
+    },
+    {
+      name: 'Ambil sendiri',
+      cost: 0,
+    },
+    {
+      name: 'Gratis Ongkir',
+      cost: 0,
+    },
+  ]
+
+  return detailDelivery
+}
+
 module.exports = {
   GetQuotations,
   GetQuotation,
   UpsertQuotation,
   DeleteQuotation,
+  GetDeliveryOption,
 }
