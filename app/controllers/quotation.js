@@ -1,9 +1,19 @@
 const {
-  SMIModels: { Quotation },
+  SMIModels: { Quotation, Customer },
 } = require('../daos')
 const joi = require('joi')
+const { USR_EMAIL, PASS_EMAIL } = process.env
+const { log } = console
 
 joi.objectId = require('joi-objectid')(joi)
+const nodemailer = require('nodemailer')
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: USR_EMAIL,
+    pass: PASS_EMAIL,
+  },
+})
 
 const GetQuotations = async (query) => {
   const { skip, limit, itemNo, itemName } = await joi
@@ -22,7 +32,6 @@ const GetQuotations = async (query) => {
       .sort({ _id: -1 })
       .skip(skip * limit)
       .limit(limit)
-      .deepPopulate(['customer'])
       .lean(),
     Quotation.countDocuments(),
   ])
@@ -30,10 +39,80 @@ const GetQuotations = async (query) => {
   return { quotations, total }
 }
 
+const contentEmail = (customer, newValue) => {
+  let message =
+    `${
+      '<html><head>' +
+    '<style> table, th, td { border: 1px solid black; border-collapse: collapse; } ' +
+      // 'table { width: 100%; } ' +
+      '</style>' +
+      '</head>' +
+      '<body>' +
+      // '<table style="border: none; cellspacing:0 cellpadding:0">' +
+    // '<table>' +
+    // '<tr>' +
+    // '<td>Nama Customer:</td>' +
+    // `<td>${customer.name}</td>` +
+    // `</tr>` +
+    // `<tr>` +
+    // `<td>No Quotation:</td>` +
+    // `<td>${newValue.quoNo}</td>` +
+    // `</tr>` +
+    // `</table>` +
+    'Nama Customer: '
+    }${customer.name}<br>` +
+    `No Quotation: ${newValue.quoNo}<br>` +
+    `Tanggal Quotation: ${newValue.createdAt.toLocaleString()}<br>` +
+    `Pembayaran: ${newValue.payment}<br>` +
+    `Pengiriman: ${newValue.delivery}<br>` +
+    `Tanggal Pengiriman: ${newValue.deliveryDate.toLocaleString()}<br>` +
+    `Note: ${newValue.note ? newValue.note : '-'} <br>` +
+    `<table style="width: 100%">` +
+    `<thead>` +
+    `<th>Kode Barang</th>` +
+    `<th>Nama Barang</th>` +
+    `<th>Qty/Pack</th>` +
+    `<th>Quantity</th>` +
+    `<th>Status</th>` +
+    `</thead>`
+
+  for (const {
+    itemNo,
+    itemName,
+    qtyPack,
+    quantity,
+    status,
+  } of newValue.detail) {
+    message +=
+      `<tr><td>${itemNo}</td>` +
+      `<td>${itemName}</td>` +
+      `<td>${qtyPack}</td>` +
+      `<td>${quantity}</td>` +
+      `<td>${status}</td>` +
+      `</tr>`
+  }
+
+  message += '</table><br>Terima Kasih.</body></html>'
+  const mailOptions = {
+    from: 'noreplyg@smi.com',
+    to: 'jundi.robbani99@gmail.com',
+    subject: 'Selamat Anda berhasil membuat Quotation SMI',
+    html: message,
+  }
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      log(error)
+    } else {
+      log(`Email sent: ${info.response}`)
+    }
+  })
+}
+
 const UpsertQuotation = async (body) => {
   body = await joi
     .object({
-      customer: joi.objectId().required(),
+      customerId: joi.number().required(),
       quoNo: joi.string().required(),
       quoDate: joi.date().required(),
       deliveryDate: joi.date().required(),
@@ -54,18 +133,30 @@ const UpsertQuotation = async (body) => {
           }),
         )
         .required(),
-      subTotal: joi.number().require(),
-      totalOrder: joi.number().require(),
+      subTotal: joi.number().required(),
+      totalOrder: joi.number().required(),
       note: joi.string().optional(),
     })
     .validateAsync(body)
   const newData = await Quotation.findOneAndUpdate(
     { quoNo: body.quoNo },
     body,
-    { new: true, upsert: true },
-  ).lean()
+    { new: true, upsert: true, rawResult: true },
+  )
+    .deepPopulate(['customerId'])
+    .lean()
+  const newValue = newData.value
 
-  return newData
+  if (!newData.lastErrorObject.updatedExisting) {
+    const customer = await Customer.findOne({
+      customerId: body.customerId,
+    }).lean()
+
+
+    contentEmail(customer, newValue)
+  }
+
+  return newValue
 }
 
 const DeleteQuotation = async (body) => {

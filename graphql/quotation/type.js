@@ -1,6 +1,6 @@
 module.exports.Quotation = `
   _id: ID
-  customer: ID
+  customerId: Int
   quoNo: String
   quoDate: String
   deliveryDate: String
@@ -53,7 +53,7 @@ module.exports = `
   }
 
   input UpsertQuotationInput {
-    customer: ID
+    customerId: Int
     quoNo: String
     quoDate: String
     deliveryDate: String
@@ -61,6 +61,9 @@ module.exports = `
     delivery: String
     deliveryCost: Int
     detail: [DetailQuotationInput]
+    subTotal: Float
+    totalOrder: Float
+    note: String
   }
 
   input QuoIdInput {
