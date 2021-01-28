@@ -78,12 +78,24 @@ module.exports = `
     limit: Int
   }  
 
+  input GetLimitCustomerInput {
+    custID: Int!
+  }
+
+  type GetLimitCustomerResponse {
+    outstandingInv: Float
+    creditLimit: Float
+    restLimit: Float
+    message: String
+  }
+
   type Query {
     GetCustomers(input: GetCustomersInput): GetCustomersResponse
     GetCustomer(input: PersonNoInput): Customer
     GetSalesmen(input: GetMasterInput): [Salesman]
     GetTerms(input: GetMasterInput): [Term]
-    GetCustCategories: [CustCategory]    
+    GetCustCategories: [CustCategory]
+    GetLimitCustomer(input: GetLimitCustomerInput): GetLimitCustomerResponse
   }
 
   type DeleteCustomerResponse {

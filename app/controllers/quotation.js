@@ -16,16 +16,34 @@ const transporter = nodemailer.createTransport({
 })
 
 const GetQuotations = async (query) => {
-  const { skip, limit, itemNo, itemName } = await joi
+  const {
+    skip,
+    limit,
+    itemNo,
+    itemName,
+    dateFrom,
+    dateTo,
+    statusQuo,
+    statusSO,
+  } = await joi
     .object({
       itemNo: joi.string().optional(),
       itemName: joi.string().optional(),
+      dateFrom: joi.string().optional(),
+      dateTo: joi.string().optional(),
+      statusQuo: joi.date().optional(),
+      statusSO: joi.date().optional(),
       skip: joi.number().min(0).max(1000).default(0),
       limit: joi.number().min(1).max(200).default(5),
     })
     .validateAsync(query)
   const [quotations, total] = await Promise.all([
     Quotation.find({
+      ...(dateFrom && dateTo
+        ? { createdAt: { $gte: dateFrom, $lte: dateTo } }
+        : {}),
+      ...(statusQuo ? { statusQuo } : {}),
+      ...(statusSO ? { statusSO } : {}),
       ...(itemNo ? { itemNo: new RegExp(itemNo, 'gi') } : {}),
       ...(itemName ? { itemName: new RegExp(itemName, 'gi') } : {}),
     })

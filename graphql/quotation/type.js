@@ -40,6 +40,10 @@ module.exports = `
     limit: Int
     itemNo: String
     itemName: String
+    dateFrom: String
+    dateTo: String
+    statusQuo: String
+    statusSO: String
   }
 
   input DetailQuotationInput {

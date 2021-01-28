@@ -401,6 +401,33 @@ const GetItems = async (query, user) => {
   return { items, differentData, message: SUCCESS }
 }
 
+const GetLimitCustomer = async (user, body) => {
+  const token = JwtSign(user)
+  const { custID } = body
+  const dataFina = await fetch(
+    normalizeUrl(`${FINA_SMI_URI}/fina/limit-customer/${custID}`),
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
+      },
+    },
+  ).catch((err) => {
+    return { fail: true, err }
+  })
+
+  if (dataFina.fail || dataFina.ok === false) {
+    return { outstandingInv: 0, creditLimit: 0, restLimit: 0, message: FAIL }
+  }
+  const data = await dataFina.json()
+
+  return {
+    ...data,
+    message: SUCCESS,
+  }
+}
+
 module.exports = {
   SyncMasterItem,
   SyncMasterUser,
@@ -409,4 +436,5 @@ module.exports = {
   SyncMasterSalesman,
   SyncMasterTerm,
   GetItems,
+  GetLimitCustomer,
 }

@@ -1,5 +1,6 @@
 /* eslint-disable prefer-destructuring */
 const customer = require('../../app/controllers/customer')
+const fina = require('../../app/controllers/fina')
 const { ValidateUser } = require('../../app/controllers/user')
 
 const resolvers = {
@@ -28,6 +29,11 @@ const resolvers = {
       await ValidateUser(user)
 
       return customer.GetCustCategories()
+    },
+    async GetLimitCustomer(_, { input }, { user }) {
+      await ValidateUser(user)
+
+      return fina.GetLimitCustomer(user, input)
     },
   },
   Mutation: {
