@@ -39,16 +39,15 @@ const GetQuotations = async (query) => {
   return { quotations, total }
 }
 
-const contentEmail = (customer, newValue) => {
+const SendRecapEmailQuo = (customer, newValue) => {
   let message =
-    `${
-      '<html><head>' +
-    '<style> table, th, td { border: 1px solid black; border-collapse: collapse; } ' +
-      // 'table { width: 100%; } ' +
-      '</style>' +
-      '</head>' +
-      '<body>' +
-      // '<table style="border: none; cellspacing:0 cellpadding:0">' +
+    `<html>
+      <head>
+        <style> table, th, td { border: 1px solid black; border-collapse: collapse; }
+        </style>
+      </head>
+      <body>` +
+    // '<table style="border: none; cellspacing:0 cellpadding:0">' +
     // '<table>' +
     // '<tr>' +
     // '<td>Nama Customer:</td>' +
@@ -59,14 +58,14 @@ const contentEmail = (customer, newValue) => {
     // `<td>${newValue.quoNo}</td>` +
     // `</tr>` +
     // `</table>` +
-    'Nama Customer: '
-    }${customer.name}<br>` +
+    `Berikut detail quotation anda: <br>` +
+    `Nama Customer: ${customer.name}<br>` +
     `No Quotation: ${newValue.quoNo}<br>` +
     `Tanggal Quotation: ${newValue.createdAt.toLocaleString()}<br>` +
     `Pembayaran: ${newValue.payment}<br>` +
     `Pengiriman: ${newValue.delivery}<br>` +
     `Tanggal Pengiriman: ${newValue.deliveryDate.toLocaleString()}<br>` +
-    `Note: ${newValue.note ? newValue.note : '-'} <br>` +
+    `Note: ${newValue.note ? newValue.note : '-'} <br><br>` +
     `<table style="width: 100%">` +
     `<thead>` +
     `<th>Kode Barang</th>` +
@@ -94,17 +93,76 @@ const contentEmail = (customer, newValue) => {
 
   message += '</table><br>Terima Kasih.</body></html>'
   const mailOptions = {
-    from: 'noreplyg@smi.com',
-    to: 'jundi.robbani99@gmail.com',
+    from: 'noreply@smi.com',
+    to: customer.email,
     subject: 'Selamat Anda berhasil membuat Quotation SMI',
     html: message,
   }
 
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
-      log(error)
+      log('Fail sent email :', error)
     } else {
-      log(`Email sent: ${info.response}`)
+      log(`Email to ${customer.email} sent: ${info.response}`)
+    }
+  })
+}
+
+const SendEmailReminder = (customer, newValue) => {
+  let message =
+    `<html>
+    <head>
+      <style> table, th, td { border: 1px solid black; border-collapse: collapse; }
+      </style>
+    </head>
+    <body>` +
+    `Quotation anda akan kadalursa 4 hari lagi, segera selesaikan quotation anda <br>` +
+    `Berikut detail quotation anda: <br>` +
+    `Nama Customer: ${customer.name}<br>` +
+    `No Quotation: ${newValue.quoNo}<br>` +
+    `Tanggal Quotation: ${newValue.createdAt.toLocaleString()}<br>` +
+    `Pembayaran: ${newValue.payment}<br>` +
+    `Pengiriman: ${newValue.delivery}<br>` +
+    `Tanggal Pengiriman: ${newValue.deliveryDate.toLocaleString()}<br>` +
+    `Note: ${newValue.note ? newValue.note : '-'} <br><br>` +
+    `<table style="width: 100%">` +
+    `<thead>` +
+    `<th>Kode Barang</th>` +
+    `<th>Nama Barang</th>` +
+    `<th>Qty/Pack</th>` +
+    `<th>Quantity</th>` +
+    `<th>Status</th>` +
+    `</thead>`
+
+  for (const {
+    itemNo,
+    itemName,
+    qtyPack,
+    quantity,
+    status,
+  } of newValue.detail) {
+    message +=
+      `<tr><td>${itemNo}</td>` +
+      `<td>${itemName}</td>` +
+      `<td>${qtyPack}</td>` +
+      `<td>${quantity}</td>` +
+      `<td>${status}</td>` +
+      `</tr>`
+  }
+
+  message += '</table><br>Terima Kasih.</body></html>'
+  const mailOptions = {
+    from: 'noreply@smi.com',
+    to: customer.email,
+    subject: 'Quotation Anda akan kadaluarsa 4 hari lagi!',
+    html: message,
+  }
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      log('Fail sent email :', error)
+    } else {
+      log(`Email to ${customer.email} sent: ${info.response}`)
     }
   })
 }
@@ -152,8 +210,7 @@ const UpsertQuotation = async (body) => {
       customerId: body.customerId,
     }).lean()
 
-
-    contentEmail(customer, newValue)
+    SendRecapEmailQuo(customer, newValue)
   }
 
   return newValue
@@ -208,10 +265,76 @@ const GetDeliveryOption = () => {
   return detailDelivery
 }
 
+const NotifExpireQuotation = async () => {
+  const quoAlmostExpires = await Quotation.aggregate([
+    {
+      $project: {
+        name: 1,
+        quoNo: 1,
+        createdAt: 1,
+        payment: 1,
+        delivery: 1,
+        deliveryDate: 1,
+        note: 1,
+        detail: 1,
+        customerId: 1,
+        daySince: {
+          $trunc: {
+            $divide: [
+              { $subtract: [new Date(), '$createdAt'] },
+              1000 * 60 * 60 * 24,
+            ],
+          },
+        },
+      },
+    },
+    { $match: { daySince: { $gte: 10 } } },
+  ])
+  const sendMailCustomer = async (quo) => {
+    const customer = await Customer.findOne({
+      customerId: quo.customerId,
+    }).lean()
+
+    SendEmailReminder(customer, quo)
+  }
+  const doPromises = []
+
+  quoAlmostExpires.map((quo) => doPromises.push(sendMailCustomer(quo)))
+
+  return Promise.all(doPromises)
+}
+
+const CheckQuotationExpired = async () => {
+  const quotationExpires = await Quotation.aggregate([
+    {
+      $project: {
+        daySince: {
+          $trunc: {
+            $divide: [
+              { $subtract: [new Date(), '$createdAt'] },
+              1000 * 60 * 60 * 24,
+            ],
+          },
+        },
+      },
+    },
+    { $match: { daySince: { $gte: 14 } } },
+  ])
+  const doPromises = []
+
+  quotationExpires.map((quoExpire) =>
+    doPromises.push(Quotation.deleteById(quoExpire._id)),
+  )
+
+  return Promise.all(doPromises)
+}
+
 module.exports = {
   GetQuotations,
   GetQuotation,
   UpsertQuotation,
   DeleteQuotation,
   GetDeliveryOption,
+  CheckQuotationExpired,
+  NotifExpireQuotation,
 }

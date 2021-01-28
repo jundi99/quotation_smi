@@ -1,5 +1,6 @@
 /* eslint-disable prefer-destructuring */
 const { SyncMasterItem } = require('./fina')
+const { CheckQuotationExpired, NotifExpireQuotation } = require('./quotation')
 let timerId = 0
 const {
   SMIModels: { Schedule },
@@ -60,6 +61,22 @@ const GetSchedule = async () => {
 
   return schedule
 }
+
+const CheckTaskEveryDay = () => {
+  const schedule = require('node-schedule')
+  const rule = new schedule.RecurrenceRule()
+
+  rule.hour = 0
+  rule.minute = 0
+
+  schedule.scheduleJob(rule, async () => {
+    log(`task every day ${new Date()}`)
+    await CheckQuotationExpired()
+    await NotifExpireQuotation()
+  })
+}
+
+CheckTaskEveryDay()
 
 module.exports = {
   UpdateTimerStock,
