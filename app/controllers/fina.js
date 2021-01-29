@@ -9,7 +9,7 @@ const {
 const joi = require('joi')
 const {
   StatusMessage: { SUCCESS, FAIL },
-} = require('../constan')
+} = require('../constants')
 
 const SyncMasterItemCategory = async (user) => {
   const token = JwtSign(user)

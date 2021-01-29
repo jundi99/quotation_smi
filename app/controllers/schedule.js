@@ -5,7 +5,7 @@ let timerId = 0
 const {
   SMIModels: { Schedule },
 } = require('../daos')
-const { STOCK } = require('../constan')
+const { STOCK } = require('../constants')
 const { log } = console
 const autoUpdateStock = async (directRun) => {
   const schedule = await Schedule.findOne({ name: STOCK }).lean()

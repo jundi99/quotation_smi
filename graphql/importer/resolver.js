@@ -4,7 +4,7 @@ const { ValidateUser } = require('../../app/controllers/user')
 const {
   SMIModels: { Schedule },
 } = require('../../app/daos')
-const { STOCK } = require('../../app/constan')
+const { STOCK } = require('../../app/constants')
 
 const resolvers = {
   Mutation: {

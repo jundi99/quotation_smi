@@ -218,9 +218,7 @@ const UpsertQuotation = async (body) => {
     { quoNo: body.quoNo },
     body,
     { new: true, upsert: true, rawResult: true },
-  )
-    .deepPopulate(['customerId'])
-    .lean()
+  ).lean()
   const newValue = newData.value
 
   if (!newData.lastErrorObject.updatedExisting) {

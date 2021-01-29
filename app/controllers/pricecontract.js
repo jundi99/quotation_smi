@@ -8,7 +8,7 @@ const normalizeUrl = require('normalize-url')
 const { JwtSign } = require('../utils')
 const {
   StatusMessage: { SUCCESS, FAIL },
-} = require('../constan')
+} = require('../constants')
 
 joi.objectId = require('joi-objectid')(joi)
 
