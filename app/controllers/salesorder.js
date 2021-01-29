@@ -1,3 +1,8 @@
+const joi = require('joi')
+const {
+  SMIModels: { Quotation },
+} = require('../daos')
+
 const UpdateSO = async (body) => {
   body = await joi
     .object({
@@ -18,5 +23,5 @@ const UpdateSO = async (body) => {
 }
 
 module.exports = {
-  UpdateSO
+  UpdateSO,
 }
