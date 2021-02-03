@@ -23,16 +23,14 @@ const GetQuotations = async (query) => {
     itemName,
     dateFrom,
     dateTo,
-    statusQuo,
-    statusSO,
+    status,
   } = await joi
     .object({
       itemNo: joi.string().optional(),
       itemName: joi.string().optional(),
       dateFrom: joi.string().optional(),
       dateTo: joi.string().optional(),
-      statusQuo: joi.date().optional(),
-      statusSO: joi.date().optional(),
+      status: joi.date().optional(),
       skip: joi.number().min(0).max(1000).default(0),
       limit: joi.number().min(1).max(200).default(5),
     })
@@ -42,8 +40,7 @@ const GetQuotations = async (query) => {
       ...(dateFrom && dateTo
         ? { createdAt: { $gte: dateFrom, $lte: dateTo } }
         : {}),
-      ...(statusQuo ? { statusQuo } : {}),
-      ...(statusSO ? { statusSO } : {}),
+      ...(status ? { status } : {}),
       ...(itemNo ? { itemNo: new RegExp(itemNo, 'gi') } : {}),
       ...(itemName ? { itemName: new RegExp(itemName, 'gi') } : {}),
     })

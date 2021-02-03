@@ -35,6 +35,13 @@ module.exports = `
     total: Int
   }
 
+  enum StatusQuoSO {
+    QUEUE
+    PROCESSED
+    DELIVERED
+    CLOSED
+  }
+
   input GetQuotationsInput {
     skip: Int
     limit: Int
@@ -42,8 +49,7 @@ module.exports = `
     itemName: String
     dateFrom: String
     dateTo: String
-    statusQuo: String
-    statusSO: String
+    status: StatusQuoSO
   }
 
   input DetailQuotationInput {
