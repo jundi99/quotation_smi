@@ -2,6 +2,8 @@ const { log, table } = console
 const {
   SMIModels: { Item },
 } = require('../daos')
+const { URL, PORT } = process.env
+const normalizeURL = require('normalize-url')
 
 const XLSItem = (req, res, next) => {
   try {
@@ -64,6 +66,16 @@ const XLSItem = (req, res, next) => {
   }
 }
 
+const getFormatFileName = (field, fileName) => {
+  const todayTime = new Date()
+  const month = todayTime.getMonth() + 1
+  const day = todayTime.getDate()
+  const year = todayTime.getFullYear()
+  const getExt = fileName.split('.')
+
+  return `${month}-${day}-${year}_${field}.${getExt[getExt.length - 1]}`
+}
+
 const XLSPriceContract = (req, res, next) => {
   try {
     const formidable = require('formidable')
@@ -74,8 +86,16 @@ const XLSPriceContract = (req, res, next) => {
       if (err) {
         throw err
       }
+
       const oldpath = files.filetoupload.path
-      const newpath = `./public/file/${files.filetoupload.name}`
+      const nameFile = getFormatFileName(
+        fields.priceNo,
+        files.filetoupload.name,
+      )
+
+      const newpath = `./public/file/${
+        fields ? nameFile : files.filetoupload.name
+      }`
 
       fs.rename(oldpath, newpath, (err) => {
         if (err) {
@@ -133,7 +153,44 @@ const XLSPriceContract = (req, res, next) => {
   }
 }
 
+const AttachmentPO = (req, res, next) => {
+  try {
+    const formidable = require('formidable')
+    const form = formidable({ multiples: true })
+    const fs = require('fs')
+
+    form.parse(req, (err, fields, files) => {
+      if (err) {
+        throw err
+      }
+      const oldPath = files.filetoupload.path
+      const nameFile = getFormatFileName(fields.quoNo, files.filetoupload.name)
+
+      const newPath = `./public/file/${
+        fields ? nameFile : files.filetoupload.name
+      }`
+
+      fs.rename(oldPath, newPath, (err) => {
+        if (err) {
+          throw err
+        }
+
+        return res.json({
+          newPath: normalizeURL(
+            `${URL}:${PORT}/${newPath.replace('public/', '')}`,
+          ),
+        })
+      })
+    })
+
+    return true
+  } catch (error) {
+    return next(error)
+  }
+}
+
 module.exports = {
   XLSItem,
   XLSPriceContract,
+  AttachmentPO,
 }

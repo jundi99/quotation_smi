@@ -37,9 +37,12 @@ app.get('/', (req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/html' })
   res.write(
     // '<form action="upload/item" method="post" enctype="multipart/form-data">',
-    '<form action="upload/price-contract" method="post" enctype="multipart/form-data">',
+    // '<form action="upload/price-contract" method="post" enctype="multipart/form-data">',
+    '<form action="upload/attachment-po" method="post" enctype="multipart/form-data">',
   )
   res.write('<input type="file" name="filetoupload"><br>')
+  // res.write('<input name="priceNo" value="123456">')
+  res.write('<input name="quoNo" value="123456">')
   res.write('<input type="submit">')
   res.write('</form>')
 

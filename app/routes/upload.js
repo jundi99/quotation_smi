@@ -9,3 +9,4 @@ module.exports = (express) =>
     })
     .post('/item', uploadFina.XLSItem)
     .post('/price-contract', uploadFina.XLSPriceContract)
+    .post('/attachment-po', uploadFina.AttachmentPO)
