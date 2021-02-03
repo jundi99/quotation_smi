@@ -16,15 +16,7 @@ const transporter = nodemailer.createTransport({
 })
 
 const GetQuotations = async (query) => {
-  const {
-    skip,
-    limit,
-    itemNo,
-    itemName,
-    dateFrom,
-    dateTo,
-    status,
-  } = await joi
+  const { skip, limit, itemNo, itemName, dateFrom, dateTo, status } = await joi
     .object({
       itemNo: joi.string().optional(),
       itemName: joi.string().optional(),
