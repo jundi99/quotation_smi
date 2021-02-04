@@ -201,6 +201,8 @@ const UpsertQuotation = async (body) => {
       subTotal: joi.number().required(),
       totalOrder: joi.number().required(),
       note: joi.string().optional(),
+      status: joi.string().default('Queue'),
+      deliveryStatus: joi.string().default('Belum Terkirim'),
     })
     .validateAsync(body)
   const newData = await Quotation.findOneAndUpdate(
@@ -283,6 +285,7 @@ const NotifExpireQuotation = async () => {
         note: 1,
         detail: 1,
         customerId: 1,
+        status: 1,
         daySince: {
           $trunc: {
             $divide: [
@@ -293,7 +296,7 @@ const NotifExpireQuotation = async () => {
         },
       },
     },
-    { $match: { daySince: { $gte: 10 } } },
+    { $match: { daySince: { $gte: 1 }, status: { $ne: 'Closed' } } },
   ])
   const sendMailCustomer = async (quo) => {
     const customer = await Customer.findOne({
@@ -328,7 +331,7 @@ const CheckQuotationExpired = async () => {
   const doPromises = []
 
   quotationExpires.map((quoExpire) =>
-    doPromises.push(Quotation.deleteById(quoExpire._id)),
+    doPromises.push(Quotation.findOneAndUpdate({ _id: quoExpire._id }, { status: 'Closed' }).lean()),
   )
 
   return Promise.all(doPromises)

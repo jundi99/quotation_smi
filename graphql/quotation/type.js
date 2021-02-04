@@ -13,6 +13,8 @@ module.exports.Quotation = `
   note: String
   attachmentPO: String
   isConfirm: Boolean
+  status: String
+  deliveryStatus: String
 `
 
 module.exports = `
@@ -36,10 +38,10 @@ module.exports = `
   }
 
   enum StatusQuoSO {
-    QUEUE
-    PROCESSED
-    DELIVERED
-    CLOSED
+    Queue
+    Processed
+    Delivered
+    Closed
   }
 
   input GetQuotationsInput {
@@ -74,6 +76,8 @@ module.exports = `
     subTotal: Float
     totalOrder: Float
     note: String
+    status: StatusQuoSO
+    deliveryStatus: String
   }
 
   input QuoIdInput {
