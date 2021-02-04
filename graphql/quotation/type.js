@@ -84,7 +84,7 @@ module.exports = `
     _id: ID
   }
 
-  type DeliveryCost {
+  type GetDeliveryCostResponse {
     name: String
     cost: Int
   }
@@ -92,7 +92,7 @@ module.exports = `
   type Query {
     GetQuotations(input: GetQuotationsInput): GetQuotationsResponse
     GetQuotation(input: QuoIdInput): Quotation
-    GetDeliveryOption: [DeliveryCost]
+    GetDeliveryOption: [GetDeliveryCostResponse]
   }
 
   type DeleteQuotationResponse {
