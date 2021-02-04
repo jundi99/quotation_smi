@@ -331,7 +331,12 @@ const CheckQuotationExpired = async () => {
   const doPromises = []
 
   quotationExpires.map((quoExpire) =>
-    doPromises.push(Quotation.findOneAndUpdate({ _id: quoExpire._id }, { status: 'Closed' }).lean()),
+    doPromises.push(
+      Quotation.findOneAndUpdate(
+        { _id: quoExpire._id },
+        { status: 'Closed' },
+      ).lean(),
+    ),
   )
 
   return Promise.all(doPromises)
