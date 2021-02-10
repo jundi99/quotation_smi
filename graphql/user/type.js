@@ -79,9 +79,14 @@ module.exports = `
     GetUsers(input: GetUsersInput): [User]
   }
 
+  type UserCustomer {
+    ${module.exports.User}
+    customerId: Int
+  }
+
   type LoginResponse {
     token: String
-    current: User
+    current: UserCustomer
   }
 
   type UpdateUserByIdResponse {

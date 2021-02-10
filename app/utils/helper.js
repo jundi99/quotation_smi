@@ -51,15 +51,16 @@ const NewItem = async (data) => {
   return newData
 }
 
+const CRUD = {
+  create: true,
+  edit: true,
+  delete: true,
+  print: true,
+  view: true,
+}
+
 const NewUser = (user) => {
   let authorizeUser = {}
-  const CRUD = {
-    create: true,
-    edit: true,
-    delete: true,
-    print: true,
-    view: true,
-  }
 
   if (user.USERLEVEL === 2) {
     authorizeUser.quotation = { name: 'Quotation', ...CRUD }
@@ -113,7 +114,17 @@ const NewCustomer = async (customer) => {
   const term = customer.TERMSID
     ? await Term.findOne({ termId: customer.TERMSID }, { _id: 1 })
     : {}
+  const userName = customer.EMAIL ? customer.EMAIL : customer.NAME
+  const authorizeUser = {
+    quotation: { name: 'Quotation', ...CRUD },
+    salesOrder: { name: 'Sales Order', ...CRUD },
+  }
   const newData = {
+    userName,
+    encryptedPassword: userName,
+    profile: {
+      fullName: userName,
+    },
     customerId: customer.ID,
     personNo: customer.PERSONNO,
     name: customer.NAME,
@@ -135,6 +146,7 @@ const NewCustomer = async (customer) => {
     salesman: salesman._id,
     term: term._id,
     isTax: customer.TAX1ID !== null,
+    authorize: authorizeUser,
   }
 
   return newData

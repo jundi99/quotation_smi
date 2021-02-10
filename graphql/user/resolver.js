@@ -1,5 +1,5 @@
 const {
-  SMIModels: { User },
+  SMIModels: { User, Customer },
 } = require('../../app/daos')
 // const bcrypt = require('bcrypt')
 const jsonwebtoken = require('jsonwebtoken')
@@ -64,14 +64,21 @@ const resolvers = {
     },
     async Login(_, { login, password }) {
       const user = await User.findOne({ userName: login })
+      const customer = await Customer.findOne({ userName: login })
+      let valid = null
+      let validUser
 
-      if (!user) {
+      if (user) {
+        valid = await user.comparePassword(password)
+        validUser = user
+      } else if (customer) {
+        valid = await customer.comparePassword(password)
+        validUser = customer
+      } else {
         throw new StandardError(
           'User ini tidak ada. Harap pastikan untuk mengetik login yang benar.',
         )
       }
-
-      const valid = await user.comparePassword(password)
 
       if (!valid) {
         throw new StandardError('Password anda salah!')
@@ -79,13 +86,13 @@ const resolvers = {
 
       return {
         token: jsonwebtoken.sign(
-          { id: user.id, userName: user.userName },
+          { id: validUser.id, userName: validUser.userName },
           JWT_SECRET,
           {
             expiresIn: '30d',
           },
         ),
-        current: user,
+        current: validUser,
       }
     },
   },

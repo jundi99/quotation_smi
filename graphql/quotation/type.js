@@ -32,8 +32,12 @@ module.exports = `
     ${module.exports.Quotation}
   }
 
+  type QuoList {
+    ${module.exports.Quotation}    
+    customerName: String    
+  }
   type GetQuotationsResponse {
-    quotations: [Quotation]
+    quotations: [QuoList]
     total: Int
   }
 
@@ -52,6 +56,7 @@ module.exports = `
     dateFrom: String
     dateTo: String
     status: StatusQuoSO
+    customerId: Int
   }
 
   input DetailQuotationInput {
@@ -81,7 +86,7 @@ module.exports = `
   }
 
   input QuoIdInput {
-    _id: ID
+    quoNo: String
   }
 
   type GetDeliveryCostResponse {

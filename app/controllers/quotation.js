@@ -4,6 +4,7 @@ const {
 const joi = require('joi')
 const { USR_EMAIL, PASS_EMAIL } = process.env
 const { log } = console
+const _ = require('lodash')
 
 joi.objectId = require('joi-objectid')(joi)
 const nodemailer = require('nodemailer')
@@ -16,7 +17,16 @@ const transporter = nodemailer.createTransport({
 })
 
 const GetQuotations = async (query) => {
-  const { skip, limit, itemNo, itemName, dateFrom, dateTo, status } = await joi
+  const {
+    skip,
+    limit,
+    itemNo,
+    itemName,
+    dateFrom,
+    dateTo,
+    status,
+    customerId,
+  } = await joi
     .object({
       itemNo: joi.string().optional(),
       itemName: joi.string().optional(),
@@ -25,6 +35,7 @@ const GetQuotations = async (query) => {
       status: joi.date().optional(),
       skip: joi.number().min(0).max(1000).default(0),
       limit: joi.number().min(1).max(200).default(5),
+      customerId: joi.number().optional(),
     })
     .validateAsync(query)
   const [quotations, total] = await Promise.all([
@@ -32,6 +43,7 @@ const GetQuotations = async (query) => {
       ...(dateFrom && dateTo
         ? { createdAt: { $gte: dateFrom, $lte: dateTo } }
         : {}),
+      ...(customerId ? { customerId } : {}),
       ...(status ? { status } : {}),
       ...(itemNo ? { itemNo: new RegExp(itemNo, 'gi') } : {}),
       ...(itemName ? { itemName: new RegExp(itemName, 'gi') } : {}),
@@ -43,7 +55,20 @@ const GetQuotations = async (query) => {
     Quotation.countDocuments(),
   ])
 
-  return { quotations, total }
+  const newQuo = await Promise.all(
+    quotations.map(async (quo) => {
+      const data = await Customer.findOne(
+        { customerId: quo.customerId },
+        { name: 1 },
+      ).lean()
+
+      quo.customerName = data ? data.name : 'NA'
+
+      return quo
+    }),
+  )
+
+  return { quotations: newQuo, total }
 }
 
 const SendRecapEmailQuo = (customer, newValue) => {
@@ -165,11 +190,15 @@ const SendEmailReminder = (customer, newValue) => {
     html: message,
   }
 
-  transporter.sendMail(mailOptions, (error, info) => {
+  transporter.sendMail(mailOptions, async (error, info) => {
     if (error) {
       log('Fail sent email :', error)
     } else {
       log(`Email to ${customer.email} sent: ${info.response}`)
+      await Quotation.findOneAndUpdate(
+        { quoNo: newValue.quoNo },
+        { isRemindExpire: true },
+      )
     }
   })
 }
@@ -200,27 +229,26 @@ const UpsertQuotation = async (body) => {
         .required(),
       subTotal: joi.number().required(),
       totalOrder: joi.number().required(),
-      note: joi.string().optional(),
+      note: joi.string().optional().allow(''),
       status: joi.string().default('Queue'),
       deliveryStatus: joi.string().default('Belum Terkirim'),
     })
     .validateAsync(body)
-  const newData = await Quotation.findOneAndUpdate(
-    { quoNo: body.quoNo },
-    body,
-    { new: true, upsert: true, rawResult: true },
-  ).lean()
-  const newValue = newData.value
+  let newData = await Quotation.findOne({ quoNo: body.quoNo })
 
-  if (!newData.lastErrorObject.updatedExisting) {
+  if (newData) {
+    newData = _.merge(newData, body)
+    newData.save()
+  } else {
+    newData = await new Quotation(body).save()
     const customer = await Customer.findOne({
       customerId: body.customerId,
     }).lean()
 
-    SendRecapEmailQuo(customer, newValue)
+    SendRecapEmailQuo(customer, newData)
   }
 
-  return newValue
+  return newData
 }
 
 const DeleteQuotation = async (body) => {
@@ -235,12 +263,12 @@ const DeleteQuotation = async (body) => {
 }
 
 const GetQuotation = async (body) => {
-  const { _id } = await joi
+  const { quoNo } = await joi
     .object({
-      _id: joi.string().required(),
+      quoNo: joi.string().required(),
     })
     .validateAsync(body)
-  const quotation = await Quotation.findOne({ _id }).lean()
+  const quotation = await Quotation.findOne({ quoNo }).lean()
 
   return quotation
 }
@@ -286,6 +314,7 @@ const NotifExpireQuotation = async () => {
         detail: 1,
         customerId: 1,
         status: 1,
+        isRemindExpire: 1,
         daySince: {
           $trunc: {
             $divide: [
@@ -296,7 +325,13 @@ const NotifExpireQuotation = async () => {
         },
       },
     },
-    { $match: { daySince: { $gte: 1 }, status: { $ne: 'Closed' } } },
+    {
+      $match: {
+        daySince: { $gte: 1 },
+        status: { $ne: 'Closed' },
+        isRemindExpire: false,
+      },
+    },
   ])
   const sendMailCustomer = async (quo) => {
     const customer = await Customer.findOne({

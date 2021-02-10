@@ -1,11 +1,21 @@
 const {
-  SMIModels: { User, Menu },
+  SMIModels: { User, Menu, Customer },
 } = require('../../app/daos')
 const StandardError = require('../../utils/standard_error')
-const ValidateUser = (user) => {
+const ValidateUser = async (user) => {
+  let validUser
+
   if (user) {
-    return User.findOne({ _id: user.id }).lean()
+    validUser = await User.findOne({ _id: user.id }).lean()
+    if (!validUser) {
+      validUser = await Customer.findOne({ _id: user.id }).lean()
+    }
+
+    if (validUser) {
+      return validUser
+    }
   }
+
   throw new StandardError('Maaf, anda tidak memiliki akses!')
 }
 const _ = require('lodash')
@@ -49,27 +59,38 @@ const CurrentMenu = async (currentUser) => {
 }
 
 const UpdateUserById = async (userId, body) => {
-  const user = await User.findOne({ userId }).lean()
+  let userUpdated
 
-  body = _.merge(user, body)
-  switch (body.profile.userLevel) {
-    case 1:
-      body.profile.nameLevel = 'User'
-      break
-    case 2:
-      body.profile.nameLevel = 'Client'
-      break
-    default:
-      body.profile.nameLevel = 'Admin'
+  if (!userId) {
+    throw new StandardError('Maaf, user ini tidak bisa di edit!')
+  }
+  if (body.profile.userLevel === 2) {
+    let customer = await Customer.findOne({ customerId: userId })
+
+    customer = _.merge(customer, body)
+    userUpdated = await customer.save()
+    // userUpdated = await Customer.updateOne({ userId }, body).lean()
+  } else {
+    let user = await User.findOne({ userId })
+
+    user = _.merge(user, body)
+    switch (body.profile.userLevel) {
+      case 1:
+        body.profile.nameLevel = 'User'
+        break
+      case 2:
+        body.profile.nameLevel = 'Client'
+        break
+      default:
+        body.profile.nameLevel = 'Admin'
+    }
+    userUpdated = await user.save()
+    // userUpdated = await User.updateOne({ userId }, body).lean()
   }
 
-  const userUpdated = await User.updateOne({ userId }, body).lean()
   const dataResponse = {
-    success: false,
-  }
-
-  if (userUpdated.nModified === 1) {
-    dataResponse.success = true
+    isCreate: userUpdated.isNew,
+    success: true,
   }
 
   return dataResponse
@@ -84,7 +105,7 @@ const GetUsers = async (query) => {
     })
     .validateAsync(query)
 
-  const users = await User.find({
+  let users = await User.find({
     $or: [
       { userName: new RegExp(q, 'gi') },
       { 'profile.fullName': new RegExp(q, 'gi') },
@@ -94,6 +115,28 @@ const GetUsers = async (query) => {
     .skip(skip * limit)
     .limit(limit)
     .lean()
+
+  if (users.length < limit) {
+    const filterNum = limit - users.length
+    let customers = await Customer.find({
+      $or: [
+        { userName: new RegExp(q, 'gi') },
+        { 'profile.fullName': new RegExp(q, 'gi') },
+      ],
+    })
+      .sort({ customerId: 1 })
+      .skip(skip * limit)
+      .limit(limit)
+      .lean()
+
+    customers = customers.filter((val, idx) => idx < filterNum)
+    customers = customers.map((customer) => {
+      customer.userId = customer.customerId
+
+      return customer
+    })
+    users = [...users, ...customers]
+  }
 
   return users
 }

@@ -155,13 +155,14 @@ const SyncMasterItem = async (opt, user) => {
   // }
 }
 
-const SyncMasterUser = async (user) => {
-  const token = JwtSign(user)
+const SyncMasterUser = async () => {
+  // const token = JwtSign(user)
   const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/sync-user`), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `${token}`,
+      // Authorization: `${token}`,
+      bypass: true,
     },
   }).catch((err) => {
     return { fail: true, err }
@@ -384,8 +385,8 @@ const GetItems = async (query, user) => {
   }
 
   items.map((item) => {
-    item.stockSMI = item.stockSMI
-    item.stockSupplier = item.stockSupplier
+    item.stockSMI = item.stockSMI ? item.stockSMI : 0
+    item.stockSupplier = item.stockSupplier ? item.stockSupplier : 0
     item.totalStockReadySell = item.stockSMI + item.stockSupplier
     const outstandingData = outstandingOrders.find(
       (order) => String(order.ITEMNO) === item.itemNo,

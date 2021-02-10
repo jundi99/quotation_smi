@@ -2,6 +2,7 @@ const {
   SMIModels: { Customer, CustCategory, Salesman, Term },
 } = require('../daos')
 const joi = require('joi')
+const _ = require('lodash')
 
 const GetCustomers = async (query) => {
   const { skip, limit, name, personNo, idType, isActive } = await joi
@@ -44,13 +45,38 @@ const UpsertCustomer = async (body) => {
       image: joi.string().optional(),
       salesman: joi.number().optional(),
       isActive: joi.boolean().default(false),
+      email: joi.string().optional(),
     })
     .validateAsync(body)
-  const newData = await Customer.findOneAndUpdate(
-    { personNo: body.personNo },
-    body,
-    { new: true, upsert: true },
-  ).lean()
+
+  const { email, name } = body
+  const userName = email ? email : name
+
+  body.profile = {
+    fullName: userName,
+  }
+  body.userName = userName
+  body.encryptedPassword = userName
+  let newData = await Customer.findOne({ personNo: body.personNo }) // don't lean this because used for save()
+
+  if (newData) {
+    newData = _.merge(newData, body)
+    newData.save()
+  } else {
+    const CRUD = {
+      create: true,
+      edit: true,
+      delete: true,
+      print: true,
+      view: true,
+    }
+
+    body.authorize = {
+      quotation: { name: 'Quotation', ...CRUD },
+      salesOrder: { name: 'Sales Order', ...CRUD },
+    }
+    newData = await new Customer(body).save()
+  }
 
   return newData
 }
