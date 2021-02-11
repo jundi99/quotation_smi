@@ -118,23 +118,27 @@ const GetUsers = async (query) => {
 
   if (users.length < limit) {
     const filterNum = limit - users.length
+    let totSkip = 0
+
+    if (users.length === 0) {
+      const countUser = await User.countDocuments()
+
+      totSkip = skip * limit - countUser
+      totSkip = totSkip < 0 ? 0 : totSkip
+    }
+
     let customers = await Customer.find({
       $or: [
         { userName: new RegExp(q, 'gi') },
         { 'profile.fullName': new RegExp(q, 'gi') },
       ],
     })
-      .sort({ customerId: 1 })
-      .skip(skip * limit)
+      .sort({ _id: 1 })
+      .skip(totSkip)
       .limit(limit)
       .lean()
 
     customers = customers.filter((val, idx) => idx < filterNum)
-    customers = customers.map((customer) => {
-      customer.userId = customer.customerId
-
-      return customer
-    })
     users = [...users, ...customers]
   }
 

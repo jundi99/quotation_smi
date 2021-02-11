@@ -73,20 +73,20 @@ module.exports = `
     limit: Int
   }
   
+  type MixUserCust {
+    ${module.exports.User}    
+    personNo: String
+  }
+
   type Query {
     CurrentUserMenu: [MenuResponse]
     GetUser: User
-    GetUsers(input: GetUsersInput): [User]
-  }
-
-  type UserCustomer {
-    ${module.exports.User}
-    customerId: Int
+    GetUsers(input: GetUsersInput): [MixUserCust]
   }
 
   type LoginResponse {
     token: String
-    current: UserCustomer
+    current: MixUserCust
   }
 
   type UpdateUserByIdResponse {

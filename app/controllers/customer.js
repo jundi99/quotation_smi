@@ -1,8 +1,9 @@
 const {
-  SMIModels: { Customer, CustCategory, Salesman, Term },
+  SMIModels: { Customer, CustCategory, Salesman, Term, User },
 } = require('../daos')
 const joi = require('joi')
 const _ = require('lodash')
+const StandardError = require('../../utils/standard_error')
 
 const GetCustomers = async (query) => {
   const { skip, limit, name, personNo, idType, isActive } = await joi
@@ -54,6 +55,12 @@ const UpsertCustomer = async (body) => {
 
   body.profile = {
     fullName: userName,
+  }
+  const isCustExist = await Customer.findOne({ userName }).lean()
+  const isUserExist = await User.findOne({ userName }).lean()
+
+  if (isCustExist || isUserExist) {
+    throw new StandardError('Maaf, username ini sudah ada!')
   }
   body.userName = userName
   body.encryptedPassword = userName
