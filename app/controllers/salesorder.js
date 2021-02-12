@@ -1,6 +1,6 @@
 const joi = require('joi')
 const {
-  SMIModels: { Quotation, Password },
+  SMIModels: { Quotation, Password, Customer },
 } = require('../daos')
 const { FINA_SMI_URI } = process.env
 const fetch = require('node-fetch')
@@ -12,6 +12,11 @@ const StandardError = require('../../utils/standard_error')
 const { log } = console
 
 const CreateSO = async (salesOrder) => {
+  const { personNo } = salesOrder
+  const customer = await Customer.findOne({ personNo }).lean()
+
+  salesOrder.customerId = customer.customerId
+  salesOrder.isCreateNewCustomer = !customer.customerId
   const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/create-so`), {
     method: 'POST',
     headers: {
@@ -34,7 +39,7 @@ const CreateSO = async (salesOrder) => {
 const UpdateSO = async (body) => {
   body = await joi
     .object({
-      customerId: joi.number().required(),
+      personNo: joi.string().required(),
       quoNo: joi.string().required(),
       attachmentPO: joi.string().optional(),
       isConfirm: joi.boolean().required(),

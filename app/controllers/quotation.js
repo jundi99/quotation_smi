@@ -241,7 +241,9 @@ const UpsertQuotation = async (body) => {
       personNo: body.personNo,
     }).lean()
 
-    SendRecapEmailQuo(customer, newData)
+    if (customer.email) {
+      SendRecapEmailQuo(customer, newData)
+    }
   }
 
   return newData
