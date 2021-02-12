@@ -121,15 +121,23 @@ module.exports = `
     salesOrder: CRUDInput
     importExcel: CRUDInput    
   }
+
   input UpdateUserByIdInput {
     userName: String
     profile: ProfileInput   
     authorize: AuthorizeUserInput     
   }
 
+  input ChangePasswordInput {
+    currentPassword: String
+    newPassword: String
+    confirmNewPassword: String
+  }
+
   type Mutation {
     #register(login: String!, password: String!): String
     Login(login: String!, password: String!): LoginResponse
     UpdateUserById(userId: ID!, input: UpdateUserByIdInput): UpdateUserByIdResponse
+    ChangePassword(input: ChangePasswordInput): String
   }
 `

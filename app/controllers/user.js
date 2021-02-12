@@ -145,9 +145,43 @@ const GetUsers = async (query) => {
   return users
 }
 
+const ChangePassword = async (user, body) => {
+  const { currentPassword, newPassword, confirmNewPassword } = await joi
+    .object({
+      currentPassword: joi.string().required(),
+      newPassword: joi.string().required(),
+      confirmNewPassword: joi.string().required(),
+    })
+    .validateAsync(body)
+
+  if (newPassword !== confirmNewPassword) {
+    throw new StandardError('Password baru tidak sama')
+  }
+
+  const { userName } = user
+  const compareSavePassword = async (model) => {
+    const data = await model.findOne({ userName })
+
+    if (data && (await data.comparePassword(currentPassword))) {
+      data.encryptedPassword = newPassword
+      await data.save()
+
+      return 'Data saved'
+    }
+    throw new StandardError('Password yang anda masukkan salah')
+  }
+
+  if (user.personNo) {
+    return compareSavePassword(Customer)
+  }
+
+  return compareSavePassword(User)
+}
+
 module.exports = {
   ValidateUser,
   CurrentMenu,
   UpdateUserById,
   GetUsers,
+  ChangePassword,
 }

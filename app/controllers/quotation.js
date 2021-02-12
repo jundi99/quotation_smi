@@ -5,7 +5,9 @@ const joi = require('joi')
 const { USR_EMAIL, PASS_EMAIL } = process.env
 const { log } = console
 const _ = require('lodash')
+const moment = require('moment')
 
+moment.locale('id')
 joi.objectId = require('joi-objectid')(joi)
 const nodemailer = require('nodemailer')
 const transporter = nodemailer.createTransport({
@@ -25,7 +27,7 @@ const GetQuotations = async (query) => {
     dateFrom,
     dateTo,
     status,
-    customerId,
+    personNo,
   } = await joi
     .object({
       itemNo: joi.string().optional(),
@@ -35,7 +37,7 @@ const GetQuotations = async (query) => {
       status: joi.date().optional(),
       skip: joi.number().min(0).max(1000).default(0),
       limit: joi.number().min(1).max(200).default(5),
-      customerId: joi.number().optional(),
+      personNo: joi.string().optional(),
     })
     .validateAsync(query)
   const [quotations, total] = await Promise.all([
@@ -43,7 +45,7 @@ const GetQuotations = async (query) => {
       ...(dateFrom && dateTo
         ? { createdAt: { $gte: dateFrom, $lte: dateTo } }
         : {}),
-      ...(customerId ? { customerId } : {}),
+      ...(personNo ? { personNo } : {}),
       ...(status ? { status } : {}),
       ...(itemNo ? { itemNo: new RegExp(itemNo, 'gi') } : {}),
       ...(itemName ? { itemName: new RegExp(itemName, 'gi') } : {}),
@@ -58,7 +60,7 @@ const GetQuotations = async (query) => {
   const newQuo = await Promise.all(
     quotations.map(async (quo) => {
       const data = await Customer.findOne(
-        { customerId: quo.customerId },
+        { personNo: quo.personNo },
         { name: 1 },
       ).lean()
 
@@ -79,26 +81,17 @@ const SendRecapEmailQuo = (customer, newValue) => {
         </style>
       </head>
       <body>` +
-    // '<table style="border: none; cellspacing:0 cellpadding:0">' +
-    // '<table>' +
-    // '<tr>' +
-    // '<td>Nama Customer:</td>' +
-    // `<td>${customer.name}</td>` +
-    // `</tr>` +
-    // `<tr>` +
-    // `<td>No Quotation:</td>` +
-    // `<td>${newValue.quoNo}</td>` +
-    // `</tr>` +
-    // `</table>` +
-    `Berikut detail quotation anda: <br>` +
-    `Nama Customer: ${customer.name}<br>` +
-    `No Quotation: ${newValue.quoNo}<br>` +
-    `Tanggal Quotation: ${newValue.createdAt.toLocaleString()}<br>` +
-    `Pembayaran: ${newValue.payment}<br>` +
-    `Pengiriman: ${newValue.delivery}<br>` +
-    `Tanggal Pengiriman: ${newValue.deliveryDate.toLocaleString()}<br>` +
-    `Note: ${newValue.note ? newValue.note : '-'} <br><br>` +
-    `<table style="width: 100%">` +
+    `Hai, ${customer.name} <br>` +
+    `Quotation anda berhasil dibuat dengan detail sebagai berikut: <br><br>` +
+    `No Quotation: <b>${newValue.quoNo}</b><br>` +
+    `Tanggal Quotation: <b>${moment(newValue.createdAt).format('LL')}</b><br>` +
+    `Pembayaran: <b>${newValue.payment}</b><br>` +
+    `Pengiriman: <b>${newValue.delivery}</b><br>` +
+    `Tanggal Pengiriman: <b>${moment(newValue.deliveryDate).format(
+      'LL',
+    )}</b><br>` +
+    `Note: <b>${newValue.note ? newValue.note : '-'} </b><br><br>` +
+    `<table style="width: 80%">` +
     `<thead>` +
     `<th>Kode Barang</th>` +
     `<th>Nama Barang</th>` +
@@ -127,7 +120,7 @@ const SendRecapEmailQuo = (customer, newValue) => {
   const mailOptions = {
     from: 'noreply@smi.com',
     to: customer.email,
-    subject: 'Selamat Anda berhasil membuat Quotation SMI',
+    subject: `Quotation No: ${newValue.quoNo} berhasil dibuat.`,
     html: message,
   }
 
@@ -148,16 +141,19 @@ const SendEmailReminder = (customer, newValue) => {
       </style>
     </head>
     <body>` +
-    `Quotation anda akan kadalursa 4 hari lagi, segera selesaikan quotation anda <br>` +
-    `Berikut detail quotation anda: <br>` +
-    `Nama Customer: ${customer.name}<br>` +
-    `No Quotation: ${newValue.quoNo}<br>` +
-    `Tanggal Quotation: ${newValue.createdAt.toLocaleString()}<br>` +
-    `Pembayaran: ${newValue.payment}<br>` +
-    `Pengiriman: ${newValue.delivery}<br>` +
-    `Tanggal Pengiriman: ${newValue.deliveryDate.toLocaleString()}<br>` +
-    `Note: ${newValue.note ? newValue.note : '-'} <br><br>` +
-    `<table style="width: 100%">` +
+    `Halo, ${customer.name}<br>` +
+    `Kami mau mengingatkan quotation anda akan kadalursa <b>4 hari</b> lagi, ` +
+    `segera selesaikan quotationnya sebelum kadaluarsa otomatis<br>` +
+    `Berikut detail quotation anda: <br><br>` +
+    `No Quotation: <b>${newValue.quoNo}</b><br>` +
+    `Tanggal Quotation: <b>${moment(newValue.createdAt).format('LL')}</b><br>` +
+    `Pembayaran: <b>${newValue.payment}</b><br>` +
+    `Pengiriman: <b>${newValue.delivery}</b><br>` +
+    `Tanggal Pengiriman: <b>${moment(newValue.deliveryDate).format(
+      'LL',
+    )}</b><br>` +
+    `Note: <b>${newValue.note ? newValue.note : '-'} </b><br><br>` +
+    `<table style="width: 80%">` +
     `<thead>` +
     `<th>Kode Barang</th>` +
     `<th>Nama Barang</th>` +
@@ -186,7 +182,7 @@ const SendEmailReminder = (customer, newValue) => {
   const mailOptions = {
     from: 'noreply@smi.com',
     to: customer.email,
-    subject: 'Quotation Anda akan kadaluarsa 4 hari lagi!',
+    subject: `Quotation anda No. ${newValue.quoNo} akan kadaluarsa 4 hari lagi!`,
     html: message,
   }
 
@@ -206,7 +202,7 @@ const SendEmailReminder = (customer, newValue) => {
 const UpsertQuotation = async (body) => {
   body = await joi
     .object({
-      customerId: joi.number().required(),
+      personNo: joi.string().required(),
       quoNo: joi.string().required(),
       quoDate: joi.date().required(),
       deliveryDate: joi.date().required(),
@@ -242,7 +238,7 @@ const UpsertQuotation = async (body) => {
   } else {
     newData = await new Quotation(body).save()
     const customer = await Customer.findOne({
-      customerId: body.customerId,
+      personNo: body.personNo,
     }).lean()
 
     SendRecapEmailQuo(customer, newData)
@@ -312,7 +308,7 @@ const NotifExpireQuotation = async () => {
         deliveryDate: 1,
         note: 1,
         detail: 1,
-        customerId: 1,
+        personNo: 1,
         status: 1,
         isRemindExpire: 1,
         daySince: {
@@ -335,7 +331,7 @@ const NotifExpireQuotation = async () => {
   ])
   const sendMailCustomer = async (quo) => {
     const customer = await Customer.findOne({
-      customerId: quo.customerId,
+      personNo: quo.personNo,
     }).lean()
 
     SendEmailReminder(customer, quo)

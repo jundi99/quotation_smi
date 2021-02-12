@@ -10,6 +10,7 @@ const {
   ValidateUser,
   UpdateUserById,
   GetUsers,
+  ChangePassword,
 } = require('../../app/controllers/user')
 
 const resolvers = {
@@ -94,6 +95,11 @@ const resolvers = {
         ),
         current: validUser,
       }
+    },
+    async ChangePassword(_, { input }, { user }) {
+      user = await ValidateUser(user)
+
+      return ChangePassword(user, input)
     },
   },
 }
