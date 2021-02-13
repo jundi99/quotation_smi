@@ -120,7 +120,7 @@ const SendRecapEmailQuo = (customer, newValue) => {
   const mailOptions = {
     from: 'noreply@smi.com',
     to: customer.email,
-    subject: `Quotation No: ${newValue.quoNo} berhasil dibuat.`,
+    subject: `Quotation No. ${newValue.quoNo} berhasil dibuat.`,
     html: message,
   }
 
