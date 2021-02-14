@@ -39,7 +39,6 @@ const CreateSO = async (salesOrder) => {
 const UpdateSO = async (body) => {
   body = await joi
     .object({
-      personNo: joi.string().required(),
       quoNo: joi.string().required(),
       attachmentPO: joi.string().optional(),
       isConfirm: joi.boolean().required(),

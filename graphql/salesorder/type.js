@@ -1,6 +1,5 @@
 module.exports = `
   input UpdateSOInput {
-    personNo: String
     quoNo: String
     attachmentPO: String
     isConfirm: Boolean
