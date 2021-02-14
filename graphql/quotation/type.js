@@ -1,6 +1,6 @@
 module.exports.Quotation = `
   _id: ID
-  personNo: Int
+  personNo: String
   quoNo: String
   quoDate: String
   deliveryDate: String
@@ -56,7 +56,7 @@ module.exports = `
     dateFrom: String
     dateTo: String
     status: StatusQuoSO
-    personNo: Int
+    personNo: String
   }
 
   input DetailQuotationInput {
