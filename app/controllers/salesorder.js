@@ -17,6 +17,9 @@ const CreateSO = async (salesOrder) => {
 
   salesOrder.customerId = customer.customerId
   salesOrder.isCreateNewCustomer = !customer.customerId
+  if (salesOrder.isCreateNewCustomer) {
+    salesOrder.customer = customer
+  }
   const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/create-so`), {
     method: 'POST',
     headers: {

@@ -96,7 +96,7 @@ module.exports = `
 
   type Query {
     GetQuotations(input: GetQuotationsInput): GetQuotationsResponse
-    GetQuotation(input: QuoIdInput): Quotation
+    GetQuotation(input: QuoIdInput): QuoList
     GetDeliveryOption: [GetDeliveryCostResponse]
   }
 

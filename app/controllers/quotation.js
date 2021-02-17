@@ -267,6 +267,12 @@ const GetQuotation = async (body) => {
     })
     .validateAsync(body)
   const quotation = await Quotation.findOne({ quoNo }).lean()
+  const data = await Customer.findOne(
+    { personNo: quotation.personNo },
+    { name: 1 },
+  ).lean()
+
+  quotation.customerName = data ? data.name : 'NA'
 
   return quotation
 }
