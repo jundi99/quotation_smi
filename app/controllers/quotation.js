@@ -34,7 +34,7 @@ const GetQuotations = async (query) => {
       itemName: joi.string().optional(),
       dateFrom: joi.string().optional(),
       dateTo: joi.string().optional(),
-      status: joi.date().optional(),
+      status: joi.string().optional(),
       skip: joi.number().min(0).max(1000).default(0),
       limit: joi.number().min(1).max(200).default(5),
       personNo: joi.string().optional(),
@@ -47,8 +47,8 @@ const GetQuotations = async (query) => {
         : {}),
       ...(personNo ? { personNo } : {}),
       ...(status ? { status } : {}),
-      ...(itemNo ? { itemNo: new RegExp(itemNo, 'gi') } : {}),
-      ...(itemName ? { itemName: new RegExp(itemName, 'gi') } : {}),
+      ...(itemNo ? { 'detail.itemNo': new RegExp(itemNo, 'gi') } : {}),
+      ...(itemName ? { 'detail.itemName': new RegExp(itemName, 'gi') } : {}),
     })
       .sort({ _id: -1 })
       .skip(skip * limit)

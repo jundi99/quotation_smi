@@ -22,7 +22,7 @@ const auth = jwt({
 })
 
 app.use(logger('dev'))
-app.use(bodyParser.json())
+app.use(bodyParser.json({ limit: '5mb' }))
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(compression())
 app.use(useragent.express())

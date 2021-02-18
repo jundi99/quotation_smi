@@ -1,16 +1,15 @@
 const {
-  SMIModels: { Customer, CustCategory, Salesman, Term, User },
+  SMIModels: { Customer, CustCategory, Salesman, Term },
 } = require('../daos')
 const joi = require('joi')
 const _ = require('lodash')
-const StandardError = require('../../utils/standard_error')
 
 const GetCustomers = async (query) => {
   const { skip, limit, name, personNo, idType, isActive } = await joi
     .object({
       personNo: joi.string().optional(),
       name: joi.string().optional(),
-      idType: joi.number().optional(),
+      idType: joi.string().optional(),
       isActive: joi.boolean().optional(),
       skip: joi.number().min(0).max(1000).default(0),
       limit: joi.number().min(1).max(200).default(5),
@@ -20,13 +19,13 @@ const GetCustomers = async (query) => {
     Customer.find({
       ...(personNo ? { personNo: new RegExp(personNo, 'gi') } : {}),
       ...(name ? { name: new RegExp(name, 'gi') } : {}),
-      ...(idType ? { idType } : {}),
+      ...(idType ? { category: idType } : {}),
       ...(isActive ? { isActive } : {}),
     })
       .sort({ customerId: 1 })
       .skip(skip * limit)
       .limit(limit)
-      .deepPopulate(['idType', 'salesman', 'term'])
+      .deepPopulate(['category', 'salesman', 'term'])
       .lean(),
     Customer.countDocuments(),
   ])
@@ -42,7 +41,7 @@ const UpsertCustomer = async (body) => {
       note: joi.string().optional(),
       isTax: joi.boolean().default(false),
       phone: joi.string().optional(),
-      idType: joi.number().optional(),
+      idType: joi.string().optional(),
       image: joi.string().optional(),
       salesman: joi.number().optional(),
       isActive: joi.boolean().default(false),
@@ -56,14 +55,15 @@ const UpsertCustomer = async (body) => {
   body.profile = {
     fullName: userName,
   }
-  const isCustExist = await Customer.findOne({ userName }).lean()
-  const isUserExist = await User.findOne({ userName }).lean()
 
-  if (isCustExist || isUserExist) {
-    throw new StandardError('Maaf, username ini sudah ada!')
-  }
   body.userName = userName
   body.encryptedPassword = userName
+  body.category = body.idType
+  const salesmanData = await Salesman.findOne({
+    salesmanId: body.salesman,
+  }).lean()
+
+  body.salesman = salesmanData._id
   let newData = await Customer.findOne({ personNo: body.personNo }) // don't lean this because used for save()
 
   if (newData) {
@@ -105,7 +105,9 @@ const GetCustomer = async (body) => {
       personNo: joi.string().required(),
     })
     .validateAsync(body)
-  const customer = await Customer.findOne({ personNo }).lean()
+  const customer = await Customer.findOne({ personNo })
+    .deepPopulate(['category', 'salesman', 'term'])
+    .lean()
 
   return customer
 }

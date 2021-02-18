@@ -52,7 +52,7 @@ module.exports = `
     limit: Int
     personNo: String
     name: String
-    idType: Int
+    idType: String
     isActive: Boolean
   }
 
@@ -62,7 +62,7 @@ module.exports = `
     note: String
     isTax: Boolean
     phone: String
-    idType: Int
+    idType: String
     image: String
     salesman: Int
     isActive: Boolean
