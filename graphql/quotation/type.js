@@ -44,6 +44,7 @@ module.exports = `
   enum StatusQuoSO {
     Queue
     Processed
+    Sent
     Delivered
     Closed
   }

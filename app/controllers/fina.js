@@ -4,7 +4,7 @@ const normalizeUrl = require('normalize-url')
 const { JwtSign } = require('../utils')
 const { NewItem, NewUser, NewCustomer } = require('../utils/helper')
 const {
-  SMIModels: { User, Item, ItemCategory, Customer, Salesman, Term },
+  SMIModels: { User, Item, ItemCategory, Customer, Salesman, Term, Quotation },
 } = require('../daos')
 const joi = require('joi')
 const {
@@ -429,6 +429,47 @@ const GetLimitCustomer = async (user, body) => {
   }
 }
 
+const CheckQuoProceed = async () => {
+  const quotations = await Quotation.find(
+    { status: 'Processed' },
+    { quoNo: 1 },
+  ).lean()
+  const quoNos = quotations.map((quo) => quo.quoNo)
+
+  if (!quoNos.length) {
+    return { message: SUCCESS }
+  }
+  const dataFina = await fetch(
+    normalizeUrl(`${FINA_SMI_URI}/fina/quo-proceed`),
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        quoNos,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+        bypass: true,
+      },
+    },
+  ).catch((err) => {
+    return { fail: true, err }
+  })
+
+  if (dataFina.fail || dataFina.ok === false) {
+    return { message: FAIL }
+  }
+  const { results } = await dataFina.json()
+
+  return Promise.all(
+    results.map((result) =>
+      Quotation.updateOne(
+        { quoNo: result.CHEQUENO },
+        { status: result.STATUS === 0 ? 'Sent' : 'Closed' },
+      ),
+    ),
+  )
+}
+
 module.exports = {
   SyncMasterItem,
   SyncMasterUser,
@@ -438,4 +479,5 @@ module.exports = {
   SyncMasterTerm,
   GetItems,
   GetLimitCustomer,
+  CheckQuoProceed,
 }

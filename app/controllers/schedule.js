@@ -1,5 +1,5 @@
 /* eslint-disable prefer-destructuring */
-const { SyncMasterItem } = require('./fina')
+const { SyncMasterItem, CheckQuoProceed } = require('./fina')
 const { CheckQuotationExpired, NotifExpireQuotation } = require('./quotation')
 let timerId = 0
 const {
@@ -26,12 +26,15 @@ const autoUpdateStock = async (directRun) => {
       database,
     }
   }
+
   if (directRun) {
     SyncMasterItem(options, { bypass: true })
+    CheckQuoProceed()
   }
   timerId = setInterval(() => {
     log(`${new Date()} | new timer: ${timer}`)
     SyncMasterItem(options, { bypass: true })
+    CheckQuoProceed()
   }, timer)
 
   return timerId

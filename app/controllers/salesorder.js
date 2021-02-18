@@ -12,31 +12,40 @@ const StandardError = require('../../utils/standard_error')
 const { log } = console
 
 const CreateSO = async (salesOrder) => {
-  const { personNo } = salesOrder
-  const customer = await Customer.findOne({ personNo }).lean()
+  try {
+    const { personNo } = salesOrder
+    const customer = await Customer.findOne({ personNo }).lean()
 
-  salesOrder.customerId = customer.customerId
-  salesOrder.isCreateNewCustomer = !customer.customerId
-  if (salesOrder.isCreateNewCustomer) {
-    salesOrder.customer = customer
+    salesOrder.customerId = customer.customerId
+    salesOrder.isCreateNewCustomer = !customer.customerId
+    if (salesOrder.isCreateNewCustomer) {
+      salesOrder.customer = customer
+    }
+    const dataFina = await fetch(
+      normalizeUrl(`${FINA_SMI_URI}/fina/create-so`),
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          bypass: true,
+        },
+        body: JSON.stringify(salesOrder),
+      },
+    ).catch((err) => {
+      return { fail: true, err }
+    })
+
+    if (dataFina.fail || dataFina.ok === false) {
+      return { message: FAIL }
+    }
+    const data = await dataFina.json()
+
+    return { data, message: SUCCESS }
+  } catch (error) {
+    log('CreateSO:', error)
+
+    return error
   }
-  const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/create-so`), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      bypass: true,
-    },
-    body: JSON.stringify(salesOrder),
-  }).catch((err) => {
-    return { fail: true, err }
-  })
-
-  if (dataFina.fail || dataFina.ok === false) {
-    return { total: 0, newData: 0, message: FAIL }
-  }
-  const data = await dataFina.json()
-
-  return data
 }
 
 const UpdateSO = async (body) => {
@@ -45,6 +54,7 @@ const UpdateSO = async (body) => {
       quoNo: joi.string().required(),
       attachmentPO: joi.string().optional(),
       isConfirm: joi.boolean().required(),
+      status: joi.string().default('Processed'),
     })
     .validateAsync(body)
 
