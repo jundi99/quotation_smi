@@ -10,6 +10,9 @@ const joi = require('joi')
 const {
   StatusMessage: { SUCCESS, FAIL },
 } = require('../constants')
+const {
+  StatusQuo: { SENT, CLOSED },
+} = require('../constants')
 
 const SyncMasterItemCategory = async (user) => {
   const token = JwtSign(user)
@@ -464,7 +467,10 @@ const CheckQuoProceed = async () => {
     results.map((result) =>
       Quotation.updateOne(
         { quoNo: result.CHEQUENO },
-        { status: result.STATUS === 0 ? 'Sent' : 'Closed' },
+        {
+          status: result.STATUS === 0 ? SENT : CLOSED,
+          deliveryStatus: result.DESCRIPTION,
+        },
       ),
     ),
   )

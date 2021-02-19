@@ -108,5 +108,6 @@ module.exports = `
   type Mutation {
     UpsertQuotation(input: UpsertQuotationInput): Quotation  
     DeleteQuotation(input: QuoIdInput): DeleteQuotationResponse
+    BuyItemQuoAgain(quoNo: String): [ItemQuo]
   }
 `

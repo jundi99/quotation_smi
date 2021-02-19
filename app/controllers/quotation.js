@@ -1,11 +1,15 @@
 const {
-  SMIModels: { Quotation, Customer },
+  SMIModels: { Quotation, Customer, Item },
 } = require('../daos')
 const joi = require('joi')
 const { USR_EMAIL, PASS_EMAIL } = process.env
 const { log } = console
 const _ = require('lodash')
 const moment = require('moment')
+const {
+  StatusQuo: { QUEUE, PROCESSED, DELIVERED, SENT, CLOSED },
+} = require('../constants')
+const StandardError = require('../../utils/standard_error')
 
 moment.locale('id')
 joi.objectId = require('joi-objectid')(joi)
@@ -200,39 +204,50 @@ const SendEmailReminder = (customer, newValue) => {
 }
 
 const UpsertQuotation = async (body) => {
-  body = await joi
-    .object({
-      personNo: joi.string().required(),
-      quoNo: joi.string().required(),
-      quoDate: joi.date().required(),
-      deliveryDate: joi.date().required(),
-      payment: joi.string().required(),
-      delivery: joi.string().required(),
-      deliveryCost: joi.number().required(),
-      detail: joi
-        .array()
-        .items(
-          joi.object({
-            itemNo: joi.string().required(),
-            itemName: joi.string().required(),
-            qtyPack: joi.number().required(),
-            quantity: joi.number().required(),
-            price: joi.number().required(),
-            amount: joi.number().required(),
-            status: joi.string().required(),
-          }),
-        )
-        .required(),
-      subTotal: joi.number().required(),
-      totalOrder: joi.number().required(),
-      note: joi.string().optional().allow(''),
-      status: joi.string().default('Queue'),
-      deliveryStatus: joi.string().default('Belum Terkirim'),
-    })
-    .validateAsync(body)
+  if (body.status !== DELIVERED) {
+    body = await joi
+      .object({
+        personNo: joi.string().required(),
+        quoNo: joi.string().required(),
+        quoDate: joi.date().required(),
+        deliveryDate: joi.date().required(),
+        payment: joi.string().required(),
+        delivery: joi.string().required(),
+        deliveryCost: joi.number().required(),
+        detail: joi
+          .array()
+          .items(
+            joi.object({
+              itemNo: joi.string().required(),
+              itemName: joi.string().required(),
+              qtyPack: joi.number().required(),
+              quantity: joi.number().required(),
+              price: joi.number().required(),
+              amount: joi.number().required(),
+              status: joi.string().required(),
+            }),
+          )
+          .required(),
+        subTotal: joi.number().required(),
+        totalOrder: joi.number().required(),
+        note: joi.string().optional().allow(''),
+        status: joi.string().default(QUEUE),
+        deliveryStatus: joi.string().default('Belum Terkirim'),
+      })
+      .validateAsync(body)
+  }
+
   let newData = await Quotation.findOne({ quoNo: body.quoNo })
 
   if (newData) {
+    if (
+      newData.status === PROCESSED ||
+      newData.status === SENT ||
+      newData.status === CLOSED ||
+      newData.status === DELIVERED
+    ) {
+      throw new StandardError('Data sudah di proses, tidak bisa diubah')
+    }
     newData = _.merge(newData, body)
     newData.save()
   } else {
@@ -332,7 +347,7 @@ const NotifExpireQuotation = async () => {
     {
       $match: {
         daySince: { $gte: 1 },
-        status: { $ne: 'Closed' },
+        status: { $ne: CLOSED },
         isRemindExpire: false,
       },
     },
@@ -373,12 +388,29 @@ const CheckQuotationExpired = async () => {
     doPromises.push(
       Quotation.findOneAndUpdate(
         { _id: quoExpire._id },
-        { status: 'Closed' },
+        { status: CLOSED },
       ).lean(),
     ),
   )
 
   return Promise.all(doPromises)
+}
+
+const BuyItemQuoAgain = async (quoNo) => {
+  const quotation = await Quotation.findOne({ quoNo }, { detail: 1 }).lean()
+  const detailItemQuo = quotation.detail.map((quo) => quo.itemNo)
+  let items = await Item.find({ itemNo: { $in: detailItemQuo } }).lean()
+
+  items = items.map((item) => {
+    item.price = item.price.level1
+    item.qtyPerPack = 1
+    item.availableStock =
+      item.stockSMI + item.stockSupplier > 20 ? '> 20' : '< 20'
+
+    return item
+  })
+
+  return items
 }
 
 module.exports = {
@@ -389,4 +421,5 @@ module.exports = {
   GetDeliveryOption,
   CheckQuotationExpired,
   NotifExpireQuotation,
+  BuyItemQuoAgain,
 }

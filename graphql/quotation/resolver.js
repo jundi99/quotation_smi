@@ -5,7 +5,10 @@ const { ValidateUser } = require('../../app/controllers/user')
 const resolvers = {
   Query: {
     async GetQuotations(_, { input }, { user }) {
-      await ValidateUser(user)
+      user = await ValidateUser(user)
+      if (user.profile.userLevel === 2) {
+        input.personNo = user.personNo
+      }
 
       return quotation.GetQuotations(input)
     },
@@ -30,6 +33,11 @@ const resolvers = {
       await ValidateUser(user)
 
       return quotation.DeleteQuotation(input)
+    },
+    async BuyItemQuoAgain(_, { quoNo }, { user }) {
+      await ValidateUser(user)
+
+      return quotation.BuyItemQuoAgain(quoNo)
     },
   },
 }
