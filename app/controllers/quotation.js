@@ -225,65 +225,70 @@ const runningQuoNo = async () => {
 }
 
 const UpsertQuotation = async (body) => {
-  if (body.status !== DELIVERED) {
-    body = await joi
-      .object({
-        personNo: joi.string().required(),
-        quoNo: joi.string().optional(),
-        quoDate: joi.date().required(),
-        deliveryDate: joi.date().required(),
-        payment: joi.string().required(),
-        delivery: joi.string().required(),
-        deliveryCost: joi.number().required(),
-        detail: joi
-          .array()
-          .items(
-            joi.object({
-              itemNo: joi.string().required(),
-              itemName: joi.string().required(),
-              qtyPack: joi.number().required(),
-              quantity: joi.number().required(),
-              price: joi.number().required(),
-              amount: joi.number().required(),
-              status: joi.string().required(),
-            }),
-          )
-          .required(),
-        subTotal: joi.number().required(),
-        totalOrder: joi.number().required(),
-        note: joi.string().optional().allow(''),
-        status: joi.string().default(QUEUE),
-        deliveryStatus: joi.string().default('Belum Terkirim'),
-      })
-      .validateAsync(body)
-  }
-
-  let newData = await Quotation.findOne({ quoNo: body.quoNo })
-
-  if (newData) {
-    if (
-      newData.status === PROCESSED ||
-      newData.status === SENT ||
-      newData.status === CLOSED ||
-      newData.status === DELIVERED
-    ) {
-      throw new StandardError('Data sudah di proses, tidak bisa diubah')
+  try {
+    if (body.status !== DELIVERED) {
+      body = await joi
+        .object({
+          personNo: joi.string().required(),
+          quoNo: joi.string().optional(),
+          quoDate: joi.date().required(),
+          deliveryDate: joi.date().required(),
+          payment: joi.string().required(),
+          delivery: joi.string().required(),
+          deliveryCost: joi.number().required(),
+          detail: joi
+            .array()
+            .items(
+              joi.object({
+                itemNo: joi.string().required(),
+                itemName: joi.string().required(),
+                qtyPack: joi.number().required(),
+                quantity: joi.number().required(),
+                price: joi.number().required(),
+                amount: joi.number().required(),
+                status: joi.string().required(),
+              }),
+            )
+            .required(),
+          subTotal: joi.number().required(),
+          totalOrder: joi.number().required(),
+          note: joi.string().optional().allow(''),
+          status: joi.string().default(QUEUE),
+          deliveryStatus: joi.string().default('Belum Terkirim'),
+        })
+        .validateAsync(body)
     }
-    newData = _.merge(newData, body)
-    newData.save()
-  } else {
-    body.quoNo = await runningQuoNo()
-    newData = await new Quotation(body).save()
-    const customer = await Customer.findOne({
-      personNo: body.personNo,
-    }).lean()
 
-    if (customer.email) {
-      SendRecapEmailQuo(customer, newData)
+    let newData = await Quotation.findOne({ quoNo: body.quoNo })
+
+    if (newData) {
+      if (
+        newData.status === PROCESSED ||
+        newData.status === SENT ||
+        newData.status === CLOSED ||
+        newData.status === DELIVERED
+      ) {
+        throw new StandardError('Data sudah di proses, tidak bisa diubah')
+      }
+      newData = _.merge(newData, body)
+      newData.save()
+    } else {
+      body.quoNo = await runningQuoNo()
+      newData = await new Quotation(body).save()
+      const customer = await Customer.findOne({
+        personNo: body.personNo,
+      }).lean()
+
+      if (customer && customer.email) {
+        SendRecapEmailQuo(customer, newData)
+      }
     }
-  }
 
-  return newData
+    return newData
+  } catch (error) {
+    log('UpsertQuotation:', error)
+    throw new StandardError('Fail saving data quotation')
+  }
 }
 
 const DeleteQuotation = async (body) => {

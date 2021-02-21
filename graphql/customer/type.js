@@ -66,6 +66,7 @@ module.exports = `
     image: String
     salesman: Int
     isActive: Boolean
+    email: String
   }
 
   input PersonNoInput {

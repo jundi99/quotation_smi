@@ -3,6 +3,7 @@ const {
 } = require('../daos')
 const joi = require('joi')
 const _ = require('lodash')
+const StandardError = require('../../utils/standard_error')
 
 const GetCustomers = async (query) => {
   const { skip, limit, name, personNo, idType, isActive } = await joi
@@ -34,58 +35,63 @@ const GetCustomers = async (query) => {
 }
 
 const UpsertCustomer = async (body) => {
-  body = await joi
-    .object({
-      personNo: joi.string().required(),
-      name: joi.string().required(),
-      note: joi.string().optional(),
-      isTax: joi.boolean().default(false),
-      phone: joi.string().optional(),
-      idType: joi.string().optional(),
-      image: joi.string().optional(),
-      salesman: joi.number().optional(),
-      isActive: joi.boolean().default(false),
-      email: joi.string().optional(),
-    })
-    .validateAsync(body)
+  try {
+    body = await joi
+      .object({
+        personNo: joi.string().required(),
+        name: joi.string().required(),
+        note: joi.string().optional(),
+        isTax: joi.boolean().default(false),
+        phone: joi.string().optional(),
+        idType: joi.string().optional(),
+        image: joi.string().optional(),
+        salesman: joi.number().optional(),
+        isActive: joi.boolean().default(false),
+        email: joi.string().optional(),
+      })
+      .validateAsync(body)
 
-  const { email, name } = body
-  const userName = email ? email : name
+    const { email, name } = body
+    const userName = email ? email : name
 
-  body.profile = {
-    fullName: userName,
-  }
-
-  body.userName = userName
-  body.encryptedPassword = userName
-  body.category = body.idType
-  const salesmanData = await Salesman.findOne({
-    salesmanId: body.salesman,
-  }).lean()
-
-  body.salesman = salesmanData._id
-  let newData = await Customer.findOne({ personNo: body.personNo }) // don't lean this because used for save()
-
-  if (newData) {
-    newData = _.merge(newData, body)
-    newData.save()
-  } else {
-    const CRUD = {
-      create: true,
-      edit: true,
-      delete: true,
-      print: true,
-      view: true,
+    body.profile = {
+      fullName: userName,
     }
 
-    body.authorize = {
-      quotation: { name: 'Quotation', ...CRUD },
-      salesOrder: { name: 'Sales Order', ...CRUD },
-    }
-    newData = await new Customer(body).save()
-  }
+    body.userName = userName
+    body.encryptedPassword = userName
+    body.category = body.idType
+    const salesmanData = await Salesman.findOne({
+      salesmanId: body.salesman,
+    }).lean()
 
-  return newData
+    body.salesman = salesmanData ? salesmanData._id : null
+    let newData = await Customer.findOne({ personNo: body.personNo }) // don't lean this because used for save()
+
+    if (newData) {
+      newData = _.merge(newData, body)
+      newData.save()
+    } else {
+      const CRUD = {
+        create: true,
+        edit: true,
+        delete: true,
+        print: true,
+        view: true,
+      }
+
+      body.authorize = {
+        quotation: { name: 'Quotation', ...CRUD },
+        salesOrder: { name: 'Sales Order', ...CRUD },
+      }
+      newData = await new Customer(body).save()
+    }
+
+    return newData
+  } catch (error) {
+    log('UpsertCustomer:', error)
+    throw new StandardError('Fail saving data customer')
+  }
 }
 
 const DeleteCustomer = async (body) => {
