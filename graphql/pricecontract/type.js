@@ -1,5 +1,5 @@
 module.exports.PriceContract = `
-  _id: ID
+  priceConNo: ID
   customerNames: [String]
   contractPrice: Boolean
   priceType: String
@@ -38,7 +38,7 @@ module.exports = `
   }
 
   input idPriceContractInput {
-    _id: ID
+    priceConNo: ID
   }
 
   type GetPriceTypesResponse {

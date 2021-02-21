@@ -1,5 +1,5 @@
 const {
-  SMIModels: { Quotation, Customer, Item },
+  SMIModels: { Quotation, Customer, Item, RunningNumber },
 } = require('../daos')
 const joi = require('joi')
 const { USR_EMAIL, PASS_EMAIL } = process.env
@@ -10,6 +10,7 @@ const {
   StatusQuo: { QUEUE, PROCESSED, DELIVERED, SENT, CLOSED },
 } = require('../constants')
 const StandardError = require('../../utils/standard_error')
+const numeral = require('numeral')
 
 moment.locale('id')
 joi.objectId = require('joi-objectid')(joi)
@@ -203,12 +204,32 @@ const SendEmailReminder = (customer, newValue) => {
   })
 }
 
+const runningQuoNo = async () => {
+  const number = await RunningNumber.findOne({}, { quoNo: 1 })
+  const formatDate = moment().format('YYYYMMDD')
+  const formatNum = (num) => numeral(num).format('00000000')
+  let quoNo
+
+  if (number) {
+    quoNo = number.quoNo ? formatNum(Number(number.quoNo) + 1) : formatNum(1)
+    number.quoNo = quoNo
+
+    await number.save()
+  } else {
+    quoNo = formatNum(1)
+    await new RunningNumber({ quoNo }).save()
+  }
+  quoNo = `QUO/${formatDate}/${quoNo}`
+
+  return quoNo
+}
+
 const UpsertQuotation = async (body) => {
   if (body.status !== DELIVERED) {
     body = await joi
       .object({
         personNo: joi.string().required(),
-        quoNo: joi.string().required(),
+        quoNo: joi.string().optional(),
         quoDate: joi.date().required(),
         deliveryDate: joi.date().required(),
         payment: joi.string().required(),
@@ -251,6 +272,7 @@ const UpsertQuotation = async (body) => {
     newData = _.merge(newData, body)
     newData.save()
   } else {
+    body.quoNo = await runningQuoNo()
     newData = await new Quotation(body).save()
     const customer = await Customer.findOne({
       personNo: body.personNo,

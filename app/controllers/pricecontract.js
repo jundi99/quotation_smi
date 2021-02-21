@@ -1,5 +1,5 @@
 const {
-  SMIModels: { PriceContract },
+  SMIModels: { PriceContract, RunningNumber },
 } = require('../daos')
 const joi = require('joi')
 const { FINA_SMI_URI } = process.env
@@ -9,6 +9,9 @@ const { JwtSign } = require('../utils')
 const {
   StatusMessage: { SUCCESS, FAIL },
 } = require('../constants')
+const _ = require('lodash')
+const numeral = require('numeral')
+const moment = require('moment')
 
 joi.objectId = require('joi-objectid')(joi)
 
@@ -21,7 +24,7 @@ const GetPriceContracts = async (query) => {
     .validateAsync(query)
   const [priceContracts, total] = await Promise.all([
     PriceContract.find({})
-      .sort({ _id: -1 })
+      .sort({ priceConNo: 1 })
       .skip(skip * limit)
       .limit(limit)
       .lean(),
@@ -32,20 +35,42 @@ const GetPriceContracts = async (query) => {
 }
 
 const GetPriceContract = async (body) => {
-  const { _id } = await joi
+  const { priceConNo } = await joi
     .object({
-      _id: joi.objectId().required(),
+      priceConNo: joi.string().required(),
     })
     .validateAsync(body)
-  const priceContract = await PriceContract.findOne({ _id }).lean()
+  const priceContract = await PriceContract.findOne({ priceConNo }).lean()
 
   return priceContract
+}
+
+const runningPriceConNo = async () => {
+  const number = await RunningNumber.findOne({}, { priceConNo: 1 })
+  const formatDate = moment().format('YYYYMMDD')
+  const formatNum = (num) => numeral(num).format('00000000')
+  let priceConNo
+
+  if (number) {
+    priceConNo = number.priceConNo
+      ? formatNum(Number(number.priceConNo) + 1)
+      : formatNum(1)
+    number.priceConNo = priceConNo
+
+    await number.save()
+  } else {
+    priceConNo = formatNum(1)
+    await new RunningNumber({ priceConNo }).save()
+  }
+  priceConNo = `PRI/${formatDate}/${priceConNo}`
+
+  return priceConNo
 }
 
 const UpsertPriceContract = async (body) => {
   body = await joi
     .object({
-      _id: joi.objectId().optional(),
+      priceConNo: joi.string().optional(),
       customerNames: joi.array().items(joi.string()).required(),
       contractPrice: joi.boolean().default(false),
       priceType: joi.string().optional(),
@@ -70,28 +95,27 @@ const UpsertPriceContract = async (body) => {
         .optional(),
     })
     .validateAsync(body)
-  const { _id } = body
-  let newData
+  const { priceConNo } = body
+  let newData = await PriceContract.findOne({ priceConNo })
 
-  if (!_id) {
-    newData = await new PriceContract(body).save()
+  if (priceConNo && newData) {
+    newData = _.merge(newData, body)
+    newData.save()
   } else {
-    newData = await PriceContract.findOneAndUpdate({ _id }, body, {
-      new: true,
-      upsert: true,
-    }).lean()
+    body.priceConNo = await runningPriceConNo()
+    newData = await new PriceContract(body).save()
   }
 
   return newData
 }
 
 const DeletePriceContract = async (body) => {
-  const { _id } = await joi
+  const { priceConNo } = await joi
     .object({
-      _id: joi.objectId().required(),
+      priceConNo: joi.string().required(),
     })
     .validateAsync(body)
-  const dataDeleted = await PriceContract.delete({ _id })
+  const dataDeleted = await PriceContract.delete({ priceConNo })
 
   return dataDeleted
 }
