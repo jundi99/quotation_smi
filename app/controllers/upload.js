@@ -4,6 +4,7 @@ const {
 } = require('../daos')
 const { URL, PORT } = process.env
 const normalizeURL = require('normalize-url')
+const StandardError = require('../../utils/standard_error')
 
 const XLSItem = (req, res, next) => {
   try {
@@ -13,51 +14,62 @@ const XLSItem = (req, res, next) => {
 
     form.parse(req, (err, fields, files) => {
       if (err) {
-        throw err
+        return next(err) // cannot catch to try catch so handle next on this
+      }
+      if (files.filetoupload.name === '') {
+        return next(new StandardError('Please choose xls file first'))
       }
       const oldpath = files.filetoupload.path
       const newpath = `./public/file/${files.filetoupload.name}`
 
       fs.rename(oldpath, newpath, (err) => {
         if (err) {
-          throw err
+          return next(err)
         }
         const xlsxFile = require('read-excel-file/node')
 
-        xlsxFile(`./public/file/${files.filetoupload.name}`).then((rows) => {
-          rows.shift()
-          const doSyncUpload = async (data) => {
-            const { itemNo, stockSupplier } = data
+        xlsxFile(newpath)
+          .then((rows) => {
+            rows.shift()
+            const doSyncUpload = async (data) => {
+              const { itemNo, stockSupplier } = data
 
-            const isItemExist = await Item.findOne({ itemNo }).lean()
+              const isItemExist = await Item.findOne({ itemNo }).lean()
 
-            if (isItemExist) {
-              return Item.updateOne({ itemNo }, { stockSupplier })
+              if (isItemExist) {
+                return Item.updateOne({ itemNo }, { stockSupplier })
+              }
+
+              return new Item(data).save()
             }
 
-            return new Item(data).save()
-          }
+            rows.map((row) => {
+              const data = {
+                itemNo: row[0],
+                name: row[1],
+                unit: row[2],
+                stockSupplier: row[3],
+              }
 
-          rows.map((row) => {
-            const data = {
-              itemNo: row[0],
-              name: row[1],
-              unit: row[2],
-              stockSupplier: row[3],
-            }
+              doSyncUpload(data)
 
-            doSyncUpload(data)
-
-            return true
+              return true
+            })
+            log(rows)
+            table(rows)
           })
-          log(rows)
-          table(rows)
-        })
+          .catch((err) => {
+            log('error XLS Item:', err)
+
+            return res.json({ message: 'Fail', error: err })
+          })
 
         res.write('File uploaded and moved!')
 
         return res.end()
       })
+
+      return true
     })
 
     return true
@@ -84,7 +96,10 @@ const XLSPriceContract = (req, res, next) => {
 
     form.parse(req, (err, fields, files) => {
       if (err) {
-        throw err
+        return next(err)
+      }
+      if (files.filetoupload.name === '') {
+        return next(new StandardError('Please choose file/image first'))
       }
 
       const oldpath = files.filetoupload.path
@@ -99,12 +114,12 @@ const XLSPriceContract = (req, res, next) => {
 
       fs.rename(oldpath, newpath, (err) => {
         if (err) {
-          throw err
+          return next(err)
         }
         const xlsxFile = require('read-excel-file/node')
 
-        xlsxFile(`./public/file/${files.filetoupload.name}`).then(
-          async (rows) => {
+        xlsxFile(newpath)
+          .then(async (rows) => {
             rows.shift()
             const listExists = []
             const notExists = []
@@ -142,9 +157,17 @@ const XLSPriceContract = (req, res, next) => {
             table(rows)
 
             return res.json({ data: listExists, notExists })
-          },
-        )
+          })
+          .catch((err) => {
+            log('err XLS File:', err)
+
+            return res.json({ data: [], message: 'Fail', error: err })
+          })
+
+        return true
       })
+
+      return true
     })
 
     return true
@@ -161,7 +184,7 @@ const AttachmentPO = (req, res, next) => {
 
     form.parse(req, (err, fields, files) => {
       if (err) {
-        throw err
+        return next(err)
       }
       const oldPath = files.filetoupload.path
       const nameFile = getFormatFileName(fields.quoNo, files.filetoupload.name)
@@ -172,7 +195,7 @@ const AttachmentPO = (req, res, next) => {
 
       fs.rename(oldPath, newPath, (err) => {
         if (err) {
-          throw err
+          return next(err)
         }
 
         return res.json({
@@ -181,6 +204,8 @@ const AttachmentPO = (req, res, next) => {
           ),
         })
       })
+
+      return true
     })
 
     return true
