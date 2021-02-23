@@ -11,6 +11,8 @@ const {
 const StandardError = require('../../utils/standard_error')
 const { log } = console
 
+joi.objectId = require('joi-objectid')(joi)
+
 const CreateSO = async (salesOrder) => {
   try {
     const { personNo } = salesOrder
@@ -83,7 +85,12 @@ const ValidatePasswordCredit = async (body) => {
   const { quoNo, password } = await joi
     .object({
       quoNo: joi.string().required(),
-      password: joi.string().required(),
+      password: joi
+        .objectId()
+        .required()
+        .error(() => {
+          throw new StandardError('Password yang anda masukkan tidak terdaftar')
+        }),
     })
     .validateAsync(body)
 

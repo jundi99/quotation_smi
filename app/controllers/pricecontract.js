@@ -13,8 +13,6 @@ const _ = require('lodash')
 const numeral = require('numeral')
 const moment = require('moment')
 
-joi.objectId = require('joi-objectid')(joi)
-
 const GetPriceContracts = async (query) => {
   const { skip, limit } = await joi
     .object({
