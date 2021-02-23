@@ -9,4 +9,4 @@ module.exports = (express) =>
     })
     .post('/item', uploadFina.XLSItem)
     .post('/price-contract', uploadFina.XLSPriceContract)
-    .post('/attachment-po', uploadFina.AttachmentPO)
+// .post('/attachment-po', uploadFina.AttachmentPO) not used again because FE use base64 to save pdf/image
