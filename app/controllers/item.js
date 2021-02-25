@@ -44,7 +44,7 @@ const GetItemsQuo = async (query) => {
     .lean()
 
   items = items.map((item) => {
-    item.price = item.price.level1
+    item.price = item.price ? item.price.level1 || 0 : 0
     item.qtyPerPack = 1
     item.availableStock =
       item.stockSMI + item.stockSupplier > 20 ? '> 20' : '< 20'
