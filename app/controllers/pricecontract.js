@@ -1,5 +1,5 @@
 const {
-  SMIModels: { PriceContract, RunningNumber },
+  SMIModels: { PriceContract, RunningNumber, Customer },
 } = require('../daos')
 const joi = require('joi')
 const { FINA_SMI_URI } = process.env
@@ -20,7 +20,7 @@ const GetPriceContracts = async (query) => {
       limit: joi.number().min(1).max(200).default(5),
     })
     .validateAsync(query)
-  const [priceContracts, total] = await Promise.all([
+  let [priceContracts, total] = await Promise.all([
     PriceContract.find({})
       .sort({ priceConNo: 1 })
       .skip(skip * limit)
@@ -28,6 +28,26 @@ const GetPriceContracts = async (query) => {
       .lean(),
     PriceContract.countDocuments(),
   ])
+
+  if (priceContracts) {
+    priceContracts = await Promise.all(
+      priceContracts.map(async (priceContract) => {
+        let customers = await Customer.find(
+          { personNo: { $in: priceContract.personNos } },
+          { personNo: 1, 'profile.fullName': 1 },
+        ).lean()
+
+        customers = customers.map((cust) => {
+          cust.customerName = cust.profile.fullName
+
+          return cust
+        })
+        priceContract.customers = customers
+
+        return priceContract
+      }),
+    )
+  }
 
   return { priceContracts, total }
 }
@@ -39,6 +59,21 @@ const GetPriceContract = async (body) => {
     })
     .validateAsync(body)
   const priceContract = await PriceContract.findOne({ priceConNo }).lean()
+
+  if (priceContract) {
+    let customers = await Customer.find(
+      { personNo: { $in: priceContract.personNos } },
+      { personNo: 1, 'profile.fullName': 1 },
+    ).lean()
+
+    customers = customers.map((cust) => {
+      cust.customerName = cust.profile.fullName
+
+      return cust
+    })
+
+    priceContract.customers = customers
+  }
 
   return priceContract
 }
@@ -69,7 +104,7 @@ const UpsertPriceContract = async (body) => {
   body = await joi
     .object({
       priceConNo: joi.string().optional(),
-      customerNames: joi.array().items(joi.string()).required(),
+      personNos: joi.array().items(joi.string()).required(),
       contractPrice: joi.boolean().default(false),
       priceType: joi.string().optional(),
       startAt: joi.date(),

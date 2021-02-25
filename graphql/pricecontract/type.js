@@ -1,6 +1,6 @@
 module.exports.PriceContract = `
   priceConNo: ID
-  customerNames: [String]
+  personNos: [String]
   contractPrice: Boolean
   priceType: String
   startAt: String
@@ -22,9 +22,15 @@ module.exports = `
     equalQty: Int
   }
 
+  type DetailCustomer {
+    personNo: String
+    customerName: String
+  }
+
   type PriceContract {
     ${module.exports.PriceContract}
     details: [DetailContract]    
+    customers: [DetailCustomer]
   }
 
   input GetPriceContractsInput {
