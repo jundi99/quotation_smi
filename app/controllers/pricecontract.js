@@ -1,14 +1,7 @@
 const {
-  SMIModels: { PriceContract, RunningNumber, Customer },
+  SMIModels: { PriceContract, RunningNumber, Customer, CustCategory },
 } = require('../daos')
 const joi = require('joi')
-const { FINA_SMI_URI } = process.env
-const fetch = require('node-fetch')
-const normalizeUrl = require('normalize-url')
-const { JwtSign } = require('../utils')
-const {
-  StatusMessage: { SUCCESS, FAIL },
-} = require('../constants')
 const _ = require('lodash')
 const numeral = require('numeral')
 const moment = require('moment')
@@ -153,28 +146,11 @@ const DeletePriceContract = async (body) => {
   return dataDeleted
 }
 
-const GetPriceTypes = async (user) => {
-  const token = JwtSign(user)
-  const dataFina = await fetch(
-    normalizeUrl(`${FINA_SMI_URI}/fina/price-type`),
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
-      },
-    },
-  ).catch((err) => {
-    return { fail: true, err }
-  })
+const GetPriceTypes = async () => {
+  const custCategories = await CustCategory.find({}, { name: 1 }).lean()
+  const data = custCategories.map(cust => cust.name)
 
-  if (dataFina.fail || dataFina.ok === false) {
-    return { data: [], message: FAIL }
-  }
-
-  const data = await dataFina.json()
-
-  return { ...data, message: SUCCESS }
+  return { data }
 }
 
 module.exports = {

@@ -17,7 +17,7 @@ const resolvers = {
     async GetPriceTypes(_, args, { user }) {
       await ValidateUser(user)
 
-      return priceContract.GetPriceTypes(user)
+      return priceContract.GetPriceTypes()
     },
   },
   Mutation: {

@@ -49,7 +49,6 @@ module.exports = `
 
   type GetPriceTypesResponse {
     data: [String]
-    message: String
   }
 
   type Query {

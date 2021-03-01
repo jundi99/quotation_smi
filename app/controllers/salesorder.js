@@ -66,7 +66,9 @@ const UpdateSO = async (body) => {
     { new: true },
   ).lean()
 
-  CreateSO(salesOrder)
+  if (salesOrder) {
+    CreateSO(salesOrder)
+  }
 
   return salesOrder
 }
