@@ -148,7 +148,7 @@ const DeletePriceContract = async (body) => {
 
 const GetPriceTypes = async () => {
   const custCategories = await CustCategory.find({}, { name: 1 }).lean()
-  const data = custCategories.map(cust => cust.name)
+  const data = custCategories.map((cust) => cust.name)
 
   return { data }
 }

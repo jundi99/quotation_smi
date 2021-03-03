@@ -133,7 +133,7 @@ const XLSPriceContract = (req, res, next) => {
                   itemName: isItemExist.name,
                   unit: isItemExist.unit,
                   qtyPack: row[1],
-                  sellingPrice: row[2],
+                  sellPrice: row[2],
                   moreQty: row[3],
                   lessQty: row[4],
                   equalQty: row[5],
