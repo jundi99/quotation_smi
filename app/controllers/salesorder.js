@@ -10,6 +10,7 @@ const {
 } = require('../constants')
 const StandardError = require('../../utils/standard_error')
 const { log } = console
+const { EmailToDev } = require('../utils/helper')
 
 joi.objectId = require('joi-objectid')(joi)
 
@@ -45,6 +46,7 @@ const CreateSO = async (salesOrder) => {
     return { data, message: SUCCESS }
   } catch (error) {
     log('CreateSO:', error)
+    EmailToDev('CreateSO', { error, param: salesOrder })
 
     return error
   }

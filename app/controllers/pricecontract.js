@@ -73,7 +73,7 @@ const GetPriceContract = async (body) => {
 
 const runningPriceConNo = async () => {
   const number = await RunningNumber.findOne({}, { priceConNo: 1 })
-  const formatDate = moment().format('YYYYMMDD')
+  const formatDate = moment().format('MMDD')
   const formatNum = (num) => numeral(num).format('00000000')
   let priceConNo
 

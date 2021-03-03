@@ -2,6 +2,16 @@ const {
   SMIModels: { ItemCategory, Salesman, Term },
 } = require('../daos')
 
+const { USR_EMAIL, PASS_EMAIL } = process.env
+const nodemailer = require('nodemailer')
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: USR_EMAIL,
+    pass: PASS_EMAIL,
+  },
+})
+
 const NewItem = async (data) => {
   let category = {}
 
@@ -152,8 +162,31 @@ const NewCustomer = async (customer) => {
   return newData
 }
 
+const EmailToDev = (funcName, detailError) => {
+  const emailDev = 'jundi.robbani99@gmail.com'
+  let message = `<b>Error message</b>:${detailError.error.message}<br>`
+
+  message += `<b>Stack</b>:${detailError.error.stack}<br><br>`
+  message += `<b>Param</b>:${JSON.stringify(detailError.param)}`
+  const mailOptions = {
+    from: 'report@smi.com',
+    to: emailDev,
+    subject: `Error SMI - ${funcName}`,
+    html: message,
+  }
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      log('Fail sent email :', error)
+    } else {
+      log(`Email to ${emailDev} sent: ${info.response}`)
+    }
+  })
+}
+
 module.exports = {
   NewItem,
   NewUser,
   NewCustomer,
+  EmailToDev,
 }

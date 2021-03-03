@@ -206,7 +206,7 @@ const SendEmailReminder = (customer, newValue) => {
 
 const runningQuoNo = async () => {
   const number = await RunningNumber.findOne({}, { quoNo: 1 })
-  const formatDate = moment().format('YYYYMMDD')
+  const formatDate = moment().format('MMDD')
   const formatNum = (num) => numeral(num).format('00000000')
   let quoNo
 
@@ -219,7 +219,7 @@ const runningQuoNo = async () => {
     quoNo = formatNum(1)
     await new RunningNumber({ quoNo }).save()
   }
-  quoNo = `QUO/${formatDate}/${quoNo}`
+  quoNo = `QUO/${formatDate}/${quoNo}` // max SONO fina is 20char
 
   return quoNo
 }
