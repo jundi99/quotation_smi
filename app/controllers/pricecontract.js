@@ -97,7 +97,7 @@ const UpsertPriceContract = async (body) => {
   body = await joi
     .object({
       priceConNo: joi.string().optional(),
-      personNos: joi.array().items(joi.string()).required(),
+      personNos: joi.array().items(joi.string()).optional(),
       contractPrice: joi.boolean().default(false),
       priceType: joi.string().optional(),
       startAt: joi.date(),

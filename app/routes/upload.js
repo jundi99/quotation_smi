@@ -3,7 +3,7 @@ const uploadFina = require('../controllers/upload')
 const cors = require('cors')
 const corsOptionsDelegate = (req, callback) => {
   const corsOptions = {
-    origin: 'http://172.104.181.69',
+    origin: true,
     optionsSuccessStatus: 200,
     methods: ['POST'],
     allowedHeaders: ['Content-Type', 'Authorization'],

@@ -1,5 +1,5 @@
 const {
-  SMIModels: { ItemCategory, Item },
+  SMIModels: { ItemCategory, Item, Customer, PriceContract },
 } = require('../daos')
 const joi = require('joi')
 
@@ -23,7 +23,7 @@ const GetItemCategories = async (query) => {
   return itemCategories
 }
 
-const GetItemsQuo = async (query) => {
+const GetItemsQuo = async (query, user) => {
   const { skip, limit, itemNo, name } = await joi
     .object({
       itemNo: joi.string().optional(),
@@ -43,8 +43,56 @@ const GetItemsQuo = async (query) => {
     .limit(limit)
     .lean()
 
+  const categoryCust = await Customer.findOne(
+    { personNo: user.personNo },
+    { category: 1 },
+  )
+    .deepPopulate(['category'])
+    .lean()
+
+  let priceContract = await PriceContract.findOne(
+    {
+      contractPrice: true,
+      startAt: { $lte: new Date() },
+      endAt: { $gte: new Date() },
+      $or: [
+        { personNos: user.personNo },
+        {
+          priceType:
+            categoryCust && categoryCust.category
+              ? categoryCust.category.name
+              : 'NA',
+        },
+      ],
+    },
+    { 'details.itemNo': 1, 'details.sellPrice': 1 },
+  ).lean()
+
+  if (!priceContract) {
+    priceContract = await PriceContract.findOne(
+      {
+        contractPrice: false,
+        startAt: { $lte: new Date() },
+        endAt: { $gte: new Date() },
+        priceType:
+          categoryCust && categoryCust.category
+            ? categoryCust.category.name
+            : 'NA',
+      },
+      { 'details.itemNo': 1, 'details.sellPrice': 1 },
+    ).lean()
+  }
+
   items = items.map((item) => {
-    item.price = item.price ? item.price.level1 || 0 : 0
+    const pricefromContract = priceContract
+      ? priceContract.details.find((pc) => pc.itemNo === item.itemNo)
+      : false
+
+    if (pricefromContract) {
+      item.price = pricefromContract.sellPrice
+    } else {
+      item.price = item.price ? item.price.level1 || 0 : 0
+    }
     item.qtyPerPack = 1
     item.availableStock =
       item.stockSMI + item.stockSupplier > 20 ? '> 20' : '< 20'

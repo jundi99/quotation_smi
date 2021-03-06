@@ -1,5 +1,5 @@
 const {
-  SMIModels: { Quotation, Customer, Item, RunningNumber },
+  SMIModels: { Quotation, Customer, Item, RunningNumber, PriceContract },
 } = require('../daos')
 const joi = require('joi')
 const { USR_EMAIL, PASS_EMAIL } = process.env
@@ -424,12 +424,63 @@ const CheckQuotationExpired = async () => {
 }
 
 const BuyItemQuoAgain = async (quoNo) => {
-  const quotation = await Quotation.findOne({ quoNo }, { detail: 1 }).lean()
+  const quotation = await Quotation.findOne(
+    { quoNo },
+    { detail: 1, personNo: 1 },
+  ).lean()
+  const categoryCust = await Customer.findOne(
+    { personNo: quotation.personNo },
+    { category: 1 },
+  )
+    .deepPopulate(['category'])
+    .lean()
+
+  let priceContract = await PriceContract.findOne(
+    {
+      contractPrice: true,
+      startAt: { $lte: new Date() },
+      endAt: { $gte: new Date() },
+      $or: [
+        { personNos: quotation.personNo },
+        {
+          priceType:
+            categoryCust && categoryCust.category
+              ? categoryCust.category.name
+              : 'NA',
+        },
+      ],
+    },
+    { 'details.itemNo': 1, 'details.sellPrice': 1 },
+  ).lean()
+
+  if (!priceContract) {
+    priceContract = await PriceContract.findOne(
+      {
+        contractPrice: false,
+        startAt: { $lte: new Date() },
+        endAt: { $gte: new Date() },
+        priceType:
+          categoryCust && categoryCust.category
+            ? categoryCust.category.name
+            : 'NA',
+      },
+      { 'details.itemNo': 1, 'details.sellPrice': 1 },
+    ).lean()
+  }
   const detailItemQuo = quotation.detail.map((quo) => quo.itemNo)
   let items = await Item.find({ itemNo: { $in: detailItemQuo } }).lean()
 
   items = items.map((item) => {
-    item.price = item.price ? item.price.level1 || 0 : 0
+    const pricefromContract = priceContract
+      ? priceContract.details.find((pc) => pc.itemNo === item.itemNo)
+      : false
+
+    if (pricefromContract) {
+      item.price = pricefromContract.sellPrice
+    } else {
+      item.price = item.price ? item.price.level1 || 0 : 0
+    }
+
     item.qtyPerPack = 1
     item.availableStock =
       item.stockSMI + item.stockSupplier > 20 ? '> 20' : '< 20'

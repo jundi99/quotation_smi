@@ -15,9 +15,9 @@ const resolvers = {
       return item.GetItemCategories(input)
     },
     async GetItemsQuo(_, { input }, { user }) {
-      await ValidateUser(user)
+      user = await ValidateUser(user)
 
-      return item.GetItemsQuo(input)
+      return item.GetItemsQuo(input, user)
     },
     async GetStatusItem(_, { input }, { user }) {
       await ValidateUser(user)
