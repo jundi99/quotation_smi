@@ -127,7 +127,7 @@ const NewCustomer = async (customer) => {
   const userName = customer.EMAIL ? customer.EMAIL : customer.NAME
   const authorizeUser = {
     quotation: { name: 'Quotation', ...CRUD },
-    salesOrder: { name: 'Sales Order', ...CRUD },
+    // salesOrder: { name: 'Sales Order', ...CRUD },
   }
   const newData = {
     userName,

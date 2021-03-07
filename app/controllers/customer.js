@@ -82,7 +82,7 @@ const UpsertCustomer = async (body) => {
 
       body.authorize = {
         quotation: { name: 'Quotation', ...CRUD },
-        salesOrder: { name: 'Sales Order', ...CRUD },
+        // salesOrder: { name: 'Sales Order', ...CRUD },
       }
       newData = await new Customer(body).save()
     }

@@ -2,138 +2,148 @@
 const {
   SMIModels: { Menu },
 } = require('./index')
-const { ObjectId } = require('mongoose').Types
-const importExcel = {
-  children: [
-    {
-      children: [],
-      icon: 'items',
-      _id: ObjectId(),
-      title: 'Items',
-      translate: 'Barang',
-      type: 'import',
-      url: 'SyncItem',
-    },
-    {
-      children: [],
-      icon: 'item_category',
-      _id: ObjectId(),
-      title: 'Item Category',
-      translate: 'Kategori Barang',
-      type: 'import',
-      url: 'SyncItemCategory',
-    },
-    {
-      children: [],
-      icon: 'customer',
-      _id: ObjectId(),
-      title: 'Customer',
-      translate: 'Pelanggan',
-      type: 'import',
-      url: 'SyncCustomer',
-    },
-    {
-      children: [],
-      icon: 'salesman',
-      _id: ObjectId(),
-      title: 'Salesman',
-      translate: 'Penjual',
-      type: 'import',
-      url: 'SyncSalesman',
-    },
-    {
-      children: [],
-      icon: 'term',
-      _id: ObjectId(),
-      title: 'Terms',
-      translate: 'Termin',
-      type: 'import',
-      url: 'SyncTerm',
-    },
-    {
-      children: [],
-      icon: 'user',
-      _id: ObjectId(),
-      title: 'Users',
-      translate: 'Pengguna',
-      type: 'import',
-      url: 'SyncUser',
-    },
-  ],
-  title: 'Import',
-  translate: 'Impor',
-  type: 'group',
-  id: 'ImportMenu',
-}
 
 const CreateMenu = async () => {
-  await new Menu(importExcel).save()
-
-  const user = {
-    icon: 'user',
-    title: 'User',
-    translate: 'Pengguna',
-    type: 'user',
-    url: 'SyncUser',
-    id: 'UserMenu',
+  const GROUP_TYPE = 'group'
+  const ITEM_TYPE = 'item'
+  const COLLAPSE_TYPE = 'collapse'
+  const home = {
+    id: 'home',
+    title: 'Home',
+    translate: 'Home',
+    type: GROUP_TYPE,
+    children: [
+      {
+        id: 'dashboard',
+        title: 'Dashboard',
+        translate: 'Dashboard',
+        type: ITEM_TYPE,
+        icon: 'home',
+        url: '/home/dashboard',
+      },
+    ],
   }
 
-  await new Menu(user).save()
+  await new Menu(home).save()
 
-  const customer = {
-    icon: 'customer',
-    title: 'Customer',
-    translate: 'Pelanggan',
-    type: 'customer',
-    url: 'GetCustomer',
-    id: 'CustomerMenu',
+  const transaction = {
+    id: 'transaction',
+    title: 'Transaction',
+    translate: 'Transaksi',
+    type: 'group',
+    children: [],
   }
 
-  await new Menu(customer).save()
+  await new Menu(transaction).save()
 
-  const price = {
-    icon: 'price',
-    title: 'Price',
-    translate: 'Harga',
-    type: 'price',
-    url: 'GetPrice',
-    id: 'PriceMenu',
-  }
-
-  await new Menu(price).save()
-
-  const quotation = {
-    icon: 'quotation',
+  const transQuo = {
+    id: 'transaction-quotation',
     title: 'Quotation',
-    translate: 'Surat Penawaran',
-    type: 'quotation',
-    url: 'GetQuotation',
-    id: 'QuotationMenu',
+    translate: 'Quotation',
+    type: 'item',
+    icon: 'receipt',
+    url: '/transactions/quotation',
   }
 
-  await new Menu(quotation).save()
+  await new Menu(transQuo).save()
 
-  const salesOrder = {
-    icon: 'salesorder',
+  const transSO = {
+    id: 'transaction-sales-order',
     title: 'Sales Order',
-    translate: 'Order Penjualan',
-    type: 'salesorder',
-    url: 'GetSalesOrder',
-    id: 'SalesOrderMenu',
+    translate: 'Sales Order',
+    type: 'item',
+    icon: 'assessment',
+    url: '/transactions/sales-order',
   }
 
-  await new Menu(salesOrder).save()
+  await new Menu(transSO).save()
 
-  const itemStock = {
-    icon: 'itemstock',
-    title: 'Item Stock',
-    translate: 'Stok Barang',
-    type: 'itemstock',
-    url: 'GetItemStock',
-    id: 'ItemStockMenu',
+  const settings = {
+    id: 'settings',
+    title: 'Settings',
+    translate: 'Pengaturan',
+    type: 'group',
+    children: [],
   }
 
-  await new Menu(itemStock).save()
+  await new Menu(settings).save()
+
+  const settingMaster = {
+    id: 'master',
+    title: 'Master',
+    translate: 'Master',
+    type: COLLAPSE_TYPE,
+    icon: 'settings',
+    children: [],
+  }
+
+  await new Menu(settingMaster).save()
+
+  const masterUser = {
+    id: 'master-user',
+    title: 'User',
+    translate: 'User',
+    type: 'item',
+    icon: 'person',
+    url: '/settings/users',
+  }
+
+  await new Menu(masterUser).save()
+
+  const masterSalesman = {
+    id: 'master-salesman',
+    title: 'Salesman',
+    translate: 'Salesman',
+    type: 'item',
+    icon: 'emoji_people',
+    url: '/settings/salesman',
+  }
+
+  await new Menu(masterSalesman).save()
+
+  const masterCust = {
+    id: 'master-customer',
+    title: 'Customer',
+    translate: 'Customer',
+    type: 'item',
+    icon: 'people',
+    url: '/settings/customer',
+  }
+
+  await new Menu(masterCust).save()
+
+  const masterGoods = {
+    id: 'master-goods',
+    title: 'Items',
+    translate: 'Items',
+    type: 'item',
+    icon: 'local_mall',
+    url: '/settings/goods',
+  }
+
+  await new Menu(masterGoods).save()
+
+  const masterTerms = {
+    id: 'master-terms',
+    title: 'Terms',
+    translate: 'Terms',
+    type: 'item',
+    icon: 'payments',
+    url: '/settings/terms',
+  }
+
+  await new Menu(masterTerms).save()
+
+  const changePass = {
+    id: 'change-password',
+    title: 'Change Password',
+    translate: 'Change Password',
+    type: 'item',
+    icon: 'vpn_key',
+    url: '/settings/account',
+  }
+
+  await new Menu(changePass).save()
 }
 
 module.exports = {

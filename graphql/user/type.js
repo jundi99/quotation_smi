@@ -50,11 +50,13 @@ module.exports = `
 
   type SubMenu {
     _id: ID
+    id: String
     icon: String
     title: String
     translate: String
     type: String
     url: String
+    children : [SubMenu]    
   }
 
   type MenuResponse {
@@ -64,6 +66,7 @@ module.exports = `
     icon: String
     url: String
     _id: ID
+    id: String
     children : [SubMenu]
   }
 

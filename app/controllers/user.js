@@ -21,38 +21,114 @@ const ValidateUser = async (user) => {
 const _ = require('lodash')
 const joi = require('joi')
 
+const setupAdminMenu = async (data) => {
+  data.push(await Menu.findOne({ id: 'home' }).lean())
+  const transaction = await Menu.findOne({ id: 'transaction' }).lean()
+
+  transaction.children.push(
+    await Menu.findOne({ id: 'transaction-quotation' }).lean(),
+    await Menu.findOne({ id: 'transaction-sales-order' }).lean(),
+  )
+
+  data.push(transaction)
+
+  const setting = await Menu.findOne({ id: 'settings' }).lean()
+
+  setting.children.push(
+    await Menu.findOne({ id: 'master' }).lean(),
+    await Menu.findOne({ id: 'change-password' }).lean(),
+  )
+
+  setting.children[0].children.push(
+    await Menu.findOne({ id: 'master-user' }).lean(),
+    await Menu.findOne({ id: 'master-salesman' }).lean(),
+    await Menu.findOne({ id: 'master-customer' }).lean(),
+    await Menu.findOne({ id: 'master-goods' }).lean(),
+    await Menu.findOne({ id: 'master-terms' }).lean(),
+  )
+
+  data.push(setting)
+}
+
+const setupUserMenu = async (data, authorize) => {
+  data.push(await Menu.findOne({ id: 'home' }).lean())
+  const transaction = await Menu.findOne({ id: 'transaction' }).lean()
+  const dataTrans = []
+
+  if (authorize.quotation.view) {
+    dataTrans.push(await Menu.findOne({ id: 'transaction-quotation' }).lean())
+  }
+  if (authorize.salesOrder.view) {
+    dataTrans.push(await Menu.findOne({ id: 'transaction-sales-order' }).lean())
+  }
+
+  transaction.children = dataTrans
+
+  data.push(transaction)
+
+  const setting = await Menu.findOne({ id: 'settings' }).lean()
+
+  setting.children.push(
+    await Menu.findOne({ id: 'master' }).lean(),
+    await Menu.findOne({ id: 'change-password' }).lean(),
+  )
+
+  const dataSettingChild = []
+
+  if (authorize.user.view) {
+    dataSettingChild.push(await Menu.findOne({ id: 'master-user' }).lean())
+  }
+  if (authorize.salesman.view) {
+    dataSettingChild.push(await Menu.findOne({ id: 'master-salesman' }).lean())
+  }
+  if (authorize.customer.view) {
+    dataSettingChild.push(await Menu.findOne({ id: 'master-customer' }).lean())
+  }
+  if (authorize.item.view) {
+    dataSettingChild.push(await Menu.findOne({ id: 'master-goods' }).lean())
+  }
+  dataSettingChild.push(await Menu.findOne({ id: 'master-terms' }).lean())
+  setting.children[0].children = dataSettingChild
+
+  data.push(setting)
+}
+
+const setupClienMenu = async (data, authorize) => {
+  data.push(await Menu.findOne({ id: 'home' }).lean())
+  const transaction = await Menu.findOne({ id: 'transaction' }).lean()
+  const dataTrans = []
+
+  if (authorize.quotation.view) {
+    dataTrans.push(await Menu.findOne({ id: 'transaction-quotation' }).lean())
+  }
+  if (authorize.salesOrder.view) {
+    dataTrans.push(await Menu.findOne({ id: 'transaction-sales-order' }).lean())
+  }
+
+  transaction.children = dataTrans
+
+  data.push(transaction)
+
+  const setting = await Menu.findOne({ id: 'settings' }).lean()
+
+  setting.children.push(await Menu.findOne({ id: 'change-password' }).lean())
+
+  data.push(setting)
+}
+
 const CurrentMenu = async (currentUser) => {
-  const { authorize } = currentUser
+  const { authorize, profile } = currentUser
   const data = []
   // const { CreateMenu } = require('../daos/setup_menu')
 
   // await CreateMenu() // once time if needed
-  if (authorize.importExcel.create || authorize.importExcel.edit) {
-    data.push(await Menu.findOne({ id: 'ImportMenu' }).lean())
-  }
 
-  if (authorize.user.create || authorize.user.edit) {
-    data.push(await Menu.findOne({ id: 'UserMenu' }).lean())
-  }
-
-  if (authorize.customer.create || authorize.customer.edit) {
-    data.push(await Menu.findOne({ id: 'CustomerMenu' }).lean())
-  }
-
-  if (authorize.price.create || authorize.price.edit) {
-    data.push(await Menu.findOne({ id: 'PriceMenu' }).lean())
-  }
-
-  if (authorize.quotation.create || authorize.quotation.edit) {
-    data.push(await Menu.findOne({ id: 'QuotationMenu' }).lean())
-  }
-
-  if (authorize.salesOrder.create || authorize.salesOrder.edit) {
-    data.push(await Menu.findOne({ id: 'SalesOrderMenu' }).lean())
-  }
-
-  if (authorize.itemStock.create || authorize.itemStock.edit) {
-    data.push(await Menu.findOne({ id: 'ItemStockMenu' }).lean())
+  if (profile.userLevel === 0) {
+    await setupAdminMenu(data)
+  } else if (profile.userLevel === 1) {
+    await setupUserMenu(data, authorize)
+  } else if (profile.userLevel === 2) {
+    await setupClienMenu(data, authorize)
   }
 
   return data
