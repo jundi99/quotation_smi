@@ -67,6 +67,7 @@ module.exports = `
     salesman: Int
     isActive: Boolean
     email: String
+    authorize: AuthorizeUserInput
   }
 
   input PersonNoInput {

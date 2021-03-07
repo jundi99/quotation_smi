@@ -4,7 +4,7 @@ const {
 const joi = require('joi')
 const _ = require('lodash')
 const StandardError = require('../../utils/standard_error')
-
+const { log } = console
 const GetCustomers = async (query) => {
   const { skip, limit, name, personNo, idType, isActive } = await joi
     .object({
@@ -36,20 +36,29 @@ const GetCustomers = async (query) => {
 
 const UpsertCustomer = async (body) => {
   try {
-    body = await joi
-      .object({
-        personNo: joi.string().required(),
-        name: joi.string().required(),
-        note: joi.string().optional(),
-        isTax: joi.boolean().default(false),
-        phone: joi.string().optional(),
-        idType: joi.string().optional(),
-        image: joi.string().optional(),
-        salesman: joi.number().optional(),
-        isActive: joi.boolean().default(false),
-        email: joi.string().optional(),
-      })
-      .validateAsync(body)
+    if (body.authorize) {
+      body = await joi
+        .object({
+          personNo: joi.string().required(),
+          authorize: joi.object().optional(),
+        })
+        .validateAsync(body)
+    } else {
+      body = await joi
+        .object({
+          personNo: joi.string().required(),
+          name: joi.string().required(),
+          note: joi.string().optional(),
+          isTax: joi.boolean().default(false),
+          phone: joi.string().optional(),
+          idType: joi.string().optional(),
+          image: joi.string().optional(),
+          salesman: joi.number().optional(),
+          isActive: joi.boolean().default(false),
+          email: joi.string().optional(),
+        })
+        .validateAsync(body)
+    }
 
     const { email, name } = body
     const userName = email ? email : name

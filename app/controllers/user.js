@@ -135,34 +135,23 @@ const CurrentMenu = async (currentUser) => {
 }
 
 const UpdateUserById = async (userId, body) => {
-  let userUpdated
-
   if (!userId) {
     throw new StandardError('Maaf, user ini tidak bisa di edit!')
   }
-  if (body.profile.userLevel === 2) {
-    let customer = await Customer.findOne({ customerId: userId })
+  let user = await User.findOne({ userId })
 
-    customer = _.merge(customer, body)
-    userUpdated = await customer.save()
-    // userUpdated = await Customer.updateOne({ userId }, body).lean()
-  } else {
-    let user = await User.findOne({ userId })
-
-    user = _.merge(user, body)
-    switch (body.profile.userLevel) {
-      case 1:
-        body.profile.nameLevel = 'User'
-        break
-      case 2:
-        body.profile.nameLevel = 'Client'
-        break
-      default:
-        body.profile.nameLevel = 'Admin'
-    }
-    userUpdated = await user.save()
-    // userUpdated = await User.updateOne({ userId }, body).lean()
+  user = _.merge(user, body)
+  switch (body.profile.userLevel) {
+    case 1:
+      body.profile.nameLevel = 'User'
+      break
+    case 2:
+      body.profile.nameLevel = 'Client'
+      break
+    default:
+      body.profile.nameLevel = 'Admin'
   }
+  const userUpdated = await user.save()
 
   const dataResponse = {
     isCreate: userUpdated.isNew,
