@@ -98,10 +98,11 @@ const UpsertPriceContract = async (body) => {
     .object({
       priceConNo: joi.string().optional(),
       personNos: joi.array().items(joi.string()).optional(),
-      contractPrice: joi.boolean().default(false),
-      priceType: joi.string().optional(),
+      isContract: joi.boolean().default(false),
+      priceType: joi.string().optional().allow(''),
       startAt: joi.date(),
       endAt: joi.date(),
+      createdAt: joi.date(),
       note: joi.string().optional(),
       fileXLS: joi.string().optional(),
       details: joi
@@ -148,9 +149,8 @@ const DeletePriceContract = async (body) => {
 
 const GetPriceTypes = async () => {
   const custCategories = await CustCategory.find({}, { name: 1 }).lean()
-  const data = custCategories.map((cust) => cust.name)
 
-  return { data }
+  return custCategories.map((cust) => cust.name)
 }
 
 module.exports = {

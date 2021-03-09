@@ -52,7 +52,7 @@ const GetItemsQuo = async (query, user) => {
 
   let priceContract = await PriceContract.findOne(
     {
-      contractPrice: true,
+      isContract: true,
       startAt: { $lte: new Date() },
       endAt: { $gte: new Date() },
       $or: [
@@ -71,7 +71,7 @@ const GetItemsQuo = async (query, user) => {
   if (!priceContract) {
     priceContract = await PriceContract.findOne(
       {
-        contractPrice: false,
+        isContract: false,
         startAt: { $lte: new Date() },
         endAt: { $gte: new Date() },
         priceType:
