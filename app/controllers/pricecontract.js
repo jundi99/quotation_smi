@@ -103,7 +103,7 @@ const UpsertPriceContract = async (body) => {
       startAt: joi.date(),
       endAt: joi.date(),
       createdAt: joi.date(),
-      note: joi.string().optional(),
+      note: joi.string().optional().allow(''),
       fileXLS: joi.string().optional(),
       details: joi
         .array()
