@@ -104,14 +104,27 @@ const UpsertPriceContract = async (body) => {
     .validateAsync(body)
   const { priceConNo } = body
   let newData = await PriceContract.findOne({ priceConNo })
+  const details = body.details.map((det) => {
+    if (det.equalQty > 0) {
+      det.lessQty = null
+      det.moreQty = null
+    } else {
+      det.equalQty = null
+      det.lessQty = det.lessQty || 0
+      det.moreQty = det.moreQty || 0
+    }
+
+    return det
+  })
 
   if (priceConNo && newData) {
     newData = _.merge(newData, body)
     newData.details = null
-    newData.details = body.details // replace
+    newData.details = details
     newData.save()
   } else {
     body.priceConNo = await runningPriceConNo()
+    body.details = details
     newData = await new PriceContract(body).save()
   }
 

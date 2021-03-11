@@ -24,9 +24,10 @@ const GetItemCategories = async (query) => {
 }
 
 const GetItemsQuo = async (query, user) => {
-  const { skip, limit, itemNo, name } = await joi
+  const { skip, limit, itemNo, name, personNo } = await joi
     .object({
       itemNo: joi.string().optional(),
+      personNo: joi.string().optional(),
       name: joi.string().optional(),
       skip: joi.number().min(0).max(1000).default(0),
       limit: joi.number().min(1).max(200).default(25),
@@ -44,7 +45,7 @@ const GetItemsQuo = async (query, user) => {
     .lean()
 
   const categoryCust = await Customer.findOne(
-    { personNo: user.personNo },
+    { personNo: personNo ? personNo : user.personNo },
     { category: 1 },
   )
     .deepPopulate(['category'])
@@ -56,7 +57,7 @@ const GetItemsQuo = async (query, user) => {
       startAt: { $lte: new Date() },
       endAt: { $gte: new Date() },
       $or: [
-        { personNos: user.personNo },
+        { personNos: personNo ? personNo : user.personNo },
         {
           priceType:
             categoryCust && categoryCust.category

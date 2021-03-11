@@ -91,6 +91,7 @@ module.exports = `
 
   input GetItemsQuoInput {
     itemNo: String
+    personNo: String
     name: String
     skip: Int
     limit: Int
