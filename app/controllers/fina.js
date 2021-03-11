@@ -13,6 +13,7 @@ const {
 const {
   StatusQuo: { SENT, CLOSED },
 } = require('../constants')
+const { log } = console
 
 const SyncMasterItemCategory = async (user) => {
   const token = JwtSign(user)
@@ -84,6 +85,8 @@ const SyncMasterItem = async (opt, user) => {
   })
 
   if (dataFina.fail || dataFina.ok === false) {
+    log('Fail SyncMasterItem:', dataFina)
+
     return { total: 0, newData: 0, newUpdateStock: 0, message: FAIL }
   }
   const { data, total } = await dataFina.json()

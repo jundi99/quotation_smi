@@ -13,34 +13,14 @@ const GetPriceContracts = async (query) => {
       limit: joi.number().min(1).max(200).default(5),
     })
     .validateAsync(query)
-  let [priceContracts, total] = await Promise.all([
+  const [priceContracts, total] = await Promise.all([
     PriceContract.find({})
-      .sort({ priceConNo: 1 })
+      .sort({ priceConNo: -1 })
       .skip(skip * limit)
       .limit(limit)
       .lean(),
     PriceContract.countDocuments(),
   ])
-
-  if (priceContracts) {
-    priceContracts = await Promise.all(
-      priceContracts.map(async (priceContract) => {
-        let customers = await Customer.find(
-          { personNo: { $in: priceContract.personNos } },
-          { personNo: 1, 'profile.fullName': 1 },
-        ).lean()
-
-        customers = customers.map((cust) => {
-          cust.customerName = cust.profile.fullName
-
-          return cust
-        })
-        priceContract.customers = customers
-
-        return priceContract
-      }),
-    )
-  }
 
   return { priceContracts, total }
 }
@@ -56,11 +36,11 @@ const GetPriceContract = async (body) => {
   if (priceContract) {
     let customers = await Customer.find(
       { personNo: { $in: priceContract.personNos } },
-      { personNo: 1, 'profile.fullName': 1 },
+      { personNo: 1, name: 1 },
     ).lean()
 
     customers = customers.map((cust) => {
-      cust.customerName = cust.profile.fullName
+      cust.customerName = cust.name
 
       return cust
     })
@@ -111,12 +91,12 @@ const UpsertPriceContract = async (body) => {
           joi.object({
             itemNo: joi.string().required(),
             itemName: joi.string().required(),
-            unit: joi.string(),
+            unit: joi.string().allow(null, ''),
             qtyPack: joi.number(),
             sellPrice: joi.number(),
-            moreQty: joi.number(),
-            lessQty: joi.number(),
-            equalQty: joi.number(),
+            moreQty: joi.number().allow(null),
+            lessQty: joi.number().allow(null),
+            equalQty: joi.number().allow(null),
           }),
         )
         .optional(),
@@ -127,6 +107,8 @@ const UpsertPriceContract = async (body) => {
 
   if (priceConNo && newData) {
     newData = _.merge(newData, body)
+    newData.details = null
+    newData.details = body.details // replace
     newData.save()
   } else {
     body.priceConNo = await runningPriceConNo()
