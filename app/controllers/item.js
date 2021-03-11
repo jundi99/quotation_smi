@@ -29,7 +29,7 @@ const GetItemsQuo = async (query, user) => {
       itemNo: joi.string().optional(),
       name: joi.string().optional(),
       skip: joi.number().min(0).max(1000).default(0),
-      limit: joi.number().min(1).max(200).default(5),
+      limit: joi.number().min(1).max(200).default(25),
     })
     .validateAsync(query)
 
@@ -50,7 +50,7 @@ const GetItemsQuo = async (query, user) => {
     .deepPopulate(['category'])
     .lean()
 
-  let priceContract = await PriceContract.findOne(
+  let priceContracts = await PriceContract.find(
     {
       isContract: true,
       startAt: { $lte: new Date() },
@@ -65,11 +65,13 @@ const GetItemsQuo = async (query, user) => {
         },
       ],
     },
-    { 'details.itemNo': 1, 'details.sellPrice': 1 },
-  ).lean()
+    { details: 1 },
+  )
+    .sort({ _id: -1 })
+    .lean()
 
-  if (!priceContract) {
-    priceContract = await PriceContract.findOne(
+  if (priceContracts.length === 0) {
+    priceContracts = await PriceContract.find(
       {
         isContract: false,
         startAt: { $lte: new Date() },
@@ -79,21 +81,30 @@ const GetItemsQuo = async (query, user) => {
             ? categoryCust.category.name
             : 'NA',
       },
-      { 'details.itemNo': 1, 'details.sellPrice': 1 },
-    ).lean()
+      { details: 1 },
+    )
+      .sort({ _id: -1 })
+      .lean()
   }
 
+  const allPriceContracts = []
+
+  priceContracts.map((pc) => allPriceContracts.push(...pc.details))
+
   items = items.map((item) => {
-    const pricefromContract = priceContract
-      ? priceContract.details.find((pc) => pc.itemNo === item.itemNo)
+    const pricefromContract = allPriceContracts.length
+      ? allPriceContracts.filter((pc) => pc.itemNo === item.itemNo)
       : false
 
-    if (pricefromContract) {
-      item.price = pricefromContract.sellPrice
+    if (pricefromContract.length) {
+      item.price = pricefromContract[0].sellPrice
+      item.priceContracts = pricefromContract
+      item.qtyPerPack = pricefromContract[0].qtyPack
     } else {
       item.price = item.price ? item.price.level1 || 0 : 0
+      item.qtyPerPack = 1
     }
-    item.qtyPerPack = 1
+
     item.availableStock =
       item.stockSMI + item.stockSupplier > 20 ? '> 20' : '< 20'
 

@@ -7,12 +7,14 @@ const {
 } = require('../daos')
 const { STOCK } = require('../constants')
 const { log } = console
+const StandardError = require('../../utils/standard_error')
+
 const autoUpdateStock = async (directRun) => {
   const schedule = await Schedule.findOne({ name: STOCK }).lean()
 
   const timer = schedule && schedule.timer ? schedule.timer : 10000
 
-  const dbFina = schedule && schedule.dbFina ? schedule.dbFina.split(',') : []
+  const dbFina = schedule && schedule.dbFina ? schedule.dbFina.split(';') : []
   let options = {}
 
   if (dbFina.length === 3) {
@@ -28,12 +30,16 @@ const autoUpdateStock = async (directRun) => {
   }
 
   if (directRun) {
-    SyncMasterItem(options, { bypass: true })
+    if (options.host) {
+      SyncMasterItem(options, { bypass: true })
+    }
     CheckQuoProceed()
   }
   timerId = setInterval(() => {
     log(`${new Date()} | new timer: ${timer}`)
-    SyncMasterItem(options, { bypass: true })
+    if (options.host) {
+      SyncMasterItem(options, { bypass: true })
+    }
     CheckQuoProceed()
   }, timer)
 
@@ -45,6 +51,18 @@ autoUpdateStock(true)
 const UpdateTimerStock = async (body) => {
   clearInterval(timerId)
   const timer = body.minutes * 1000 * 60
+
+  if (body.dbFina) {
+    const dbFina = body.dbFina ? body.dbFina.split(';') : []
+
+    if (dbFina.length !== 3) {
+      throw new StandardError('Letak database tidak di izinkan')
+    }
+    body.fileXLS = null
+  } else {
+    body.dbFina = null
+  }
+
   const data = {
     ...body,
     timer,

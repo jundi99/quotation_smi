@@ -262,12 +262,7 @@ const UpsertQuotation = async (body) => {
     let newData = await Quotation.findOne({ quoNo: body.quoNo })
 
     if (newData) {
-      if (
-        newData.status === PROCESSED ||
-        newData.status === SENT ||
-        newData.status === CLOSED ||
-        newData.status === DELIVERED
-      ) {
+      if (newData.status === PROCESSED || newData.status === SENT) {
         throw new StandardError('Data sudah di proses, tidak bisa diubah')
       }
       newData = _.merge(newData, body)
@@ -287,7 +282,7 @@ const UpsertQuotation = async (body) => {
     return newData
   } catch (error) {
     log('UpsertQuotation:', error)
-    throw new StandardError('Fail saving data quotation')
+    throw new StandardError('Gagal menyimpan data quotation')
   }
 }
 
@@ -435,7 +430,7 @@ const BuyItemQuoAgain = async (quoNo) => {
     .deepPopulate(['category'])
     .lean()
 
-  let priceContract = await PriceContract.findOne(
+  let priceContracts = await PriceContract.find(
     {
       isContract: true,
       startAt: { $lte: new Date() },
@@ -450,11 +445,13 @@ const BuyItemQuoAgain = async (quoNo) => {
         },
       ],
     },
-    { 'details.itemNo': 1, 'details.sellPrice': 1 },
-  ).lean()
+    { details: 1 },
+  )
+    .sort({ _id: -1 })
+    .lean()
 
-  if (!priceContract) {
-    priceContract = await PriceContract.findOne(
+  if (priceContracts.length === 0) {
+    priceContracts = await PriceContract.find(
       {
         isContract: false,
         startAt: { $lte: new Date() },
@@ -464,24 +461,31 @@ const BuyItemQuoAgain = async (quoNo) => {
             ? categoryCust.category.name
             : 'NA',
       },
-      { 'details.itemNo': 1, 'details.sellPrice': 1 },
-    ).lean()
+      { details: 1 },
+    )
+      .sort({ _id: -1 })
+      .lean()
   }
   const detailItemQuo = quotation.detail.map((quo) => quo.itemNo)
   let items = await Item.find({ itemNo: { $in: detailItemQuo } }).lean()
 
+  const allPriceContracts = []
+
+  priceContracts.map((pc) => allPriceContracts.push(...pc.details))
+
   items = items.map((item) => {
-    const pricefromContract = priceContract
-      ? priceContract.details.find((pc) => pc.itemNo === item.itemNo)
+    const pricefromContract = allPriceContracts
+      ? allPriceContracts.filter((pc) => pc.itemNo === item.itemNo)
       : false
 
-    if (pricefromContract) {
-      item.price = pricefromContract.sellPrice
+    if (pricefromContract.length) {
+      item.price = pricefromContract[0].sellPrice
+      item.priceContracts = pricefromContract
+      item.qtyPerPack = pricefromContract[0].qtyPack
     } else {
       item.price = item.price ? item.price.level1 || 0 : 0
+      item.qtyPerPack = 1
     }
-
-    item.qtyPerPack = 1
     item.availableStock =
       item.stockSMI + item.stockSupplier > 20 ? '> 20' : '< 20'
 

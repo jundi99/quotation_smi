@@ -99,7 +99,7 @@ const UpsertCustomer = async (body) => {
     return newData
   } catch (error) {
     log('UpsertCustomer:', error)
-    throw new StandardError('Fail saving data customer')
+    throw new StandardError('Gagal menyimpan data customer')
   }
 }
 

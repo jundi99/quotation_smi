@@ -72,12 +72,21 @@ module.exports = `
     limit: Int
   }
 
+  type priceContractDetail {
+    qtyPack: Float
+    lessQty: Float
+    moreQty: Float
+    equalQty: Float
+    sellPrice: Float
+  }
+
   type ItemQuo {
     itemNo: String
     name: String
     availableStock: String
     price: Float
     qtyPerPack: Int
+    priceContracts: [priceContractDetail]
   }
 
   input GetItemsQuoInput {
