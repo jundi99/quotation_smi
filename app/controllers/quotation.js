@@ -475,12 +475,18 @@ const BuyItemQuoAgain = async (quoNo) => {
 
   items = items.map((item) => {
     const pricefromContract = allPriceContracts
-      ? allPriceContracts.filter((pc) => pc.itemNo === item.itemNo)
+      ? allPriceContracts
+          .filter((pc) => pc.itemNo === item.itemNo)
+          .sort((a, b) => {
+            return a.lessQty ? a.lessQty - b.lessQty : 0 // asc
+          })
       : false
 
     if (pricefromContract.length) {
       item.price = pricefromContract[0].sellPrice
-      item.priceContracts = pricefromContract
+      item.priceContracts = pricefromContract.sort((a, b) => {
+        return a.lessQty ? b.lessQty - a.lessQty : 0 // desc
+      })
       item.qtyPerPack = pricefromContract[0].qtyPack
     } else {
       item.price = item.price ? item.price.level1 || 0 : 0
