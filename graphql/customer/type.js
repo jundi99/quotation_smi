@@ -81,7 +81,7 @@ module.exports = `
   }  
 
   input GetLimitCustomerInput {
-    custID: Int!
+    personNo: Int!
   }
 
   type GetLimitCustomerResponse {

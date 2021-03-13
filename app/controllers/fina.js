@@ -410,9 +410,9 @@ const GetItems = async (query, user) => {
 
 const GetLimitCustomer = async (user, body) => {
   const token = JwtSign(user)
-  const { custID } = body
+  const { personNo } = body
   const dataFina = await fetch(
-    normalizeUrl(`${FINA_SMI_URI}/fina/limit-customer/${custID}`),
+    normalizeUrl(`${FINA_SMI_URI}/fina/limit-customer/${personNo}`),
     {
       method: 'GET',
       headers: {
