@@ -21,7 +21,7 @@ module.exports = `
   type DetailQuotation {
     itemNo: String
     itemName: String
-    qtyPack: Int
+    qtyPack: Float
     quantity: Int
     price: Float
     amount: Float
@@ -63,7 +63,7 @@ module.exports = `
   input DetailQuotationInput {
     itemNo: String
     itemName: String
-    qtyPack: Int
+    qtyPack: Float
     quantity: Int
     price: Float
     amount: Float

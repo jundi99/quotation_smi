@@ -15,7 +15,7 @@ module.exports = `
     itemNo: String
     itemName: String
     unit: String
-    qtyPack: Int
+    qtyPack: Float
     sellPrice: Float
     moreQty: Int
     lessQty: Int
@@ -61,7 +61,7 @@ module.exports = `
     itemNo: String
     itemName: String
     unit: String
-    qtyPack: Int
+    qtyPack: Float
     sellPrice: Float
     moreQty: Int
     lessQty: Int

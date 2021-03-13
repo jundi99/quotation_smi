@@ -85,7 +85,7 @@ module.exports = `
     name: String
     availableStock: String
     price: Float
-    qtyPerPack: Int
+    qtyPack: Float
     priceContracts: [priceContractDetail]
   }
 

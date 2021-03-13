@@ -9,6 +9,7 @@ const {
 const joi = require('joi')
 const {
   StatusMessage: { SUCCESS, FAIL },
+  FAIL_SYNC_SERVER,
 } = require('../constants')
 const {
   StatusQuo: { SENT, CLOSED },
@@ -31,7 +32,7 @@ const SyncMasterItemCategory = async (user) => {
   })
 
   if (dataFina.fail || dataFina.ok === false) {
-    return { total: 0, newData: 0, message: FAIL }
+    throw new Error(FAIL_SYNC_SERVER)
   }
   const { data, total } = await dataFina.json()
   const newItemCategory = (data) => {
@@ -87,7 +88,7 @@ const SyncMasterItem = async (opt, user) => {
   if (dataFina.fail || dataFina.ok === false) {
     log('Fail SyncMasterItem:', dataFina)
 
-    return { total: 0, newData: 0, newUpdateStock: 0, message: FAIL }
+    throw new Error(FAIL_SYNC_SERVER)
   }
   const { data, total } = await dataFina.json()
   const ids = data.map((fina) => fina.ITEMNO)
@@ -175,7 +176,7 @@ const SyncMasterUser = async () => {
   })
 
   if (dataFina.fail || dataFina.ok === false) {
-    return { total: 0, newData: 0, message: FAIL }
+    throw new Error(FAIL_SYNC_SERVER)
   }
 
   const { data, total } = await dataFina.json()
@@ -214,7 +215,7 @@ const SyncMasterCustomer = async (user) => {
   })
 
   if (dataFina.fail || dataFina.ok === false) {
-    return { total: 0, newData: 0, message: FAIL }
+    throw new Error(FAIL_SYNC_SERVER)
   }
   const { data, total } = await dataFina.json()
   const ids = data.map((fina) => fina.ID)
@@ -252,7 +253,7 @@ const SyncMasterSalesman = async (user) => {
   })
 
   if (dataFina.fail || dataFina.ok === false) {
-    return { total: 0, newData: 0, message: FAIL }
+    throw new Error(FAIL_SYNC_SERVER)
   }
   const { data, total } = await dataFina.json()
   const newSalesman = (data) => {
@@ -302,7 +303,7 @@ const SyncMasterTerm = async (user) => {
   })
 
   if (dataFina.fail || dataFina.ok === false) {
-    return { total: 0, newData: 0, message: FAIL }
+    throw new Error(FAIL_SYNC_SERVER)
   }
   const { data, total } = await dataFina.json()
   const newTerm = (data) => {

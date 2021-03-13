@@ -107,10 +107,10 @@ const GetItemsQuo = async (query, user) => {
       item.priceContracts = pricefromContract.sort((a, b) => {
         return a.lessQty ? b.lessQty - a.lessQty : 0 // desc
       })
-      item.qtyPerPack = pricefromContract[0].qtyPack
+      item.qtyPack = pricefromContract[0].qtyPack
     } else {
       item.price = item.price ? item.price.level1 || 0 : 0
-      item.qtyPerPack = 1
+      item.qtyPack = 1
     }
 
     item.availableStock =
