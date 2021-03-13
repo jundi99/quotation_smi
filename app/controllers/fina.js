@@ -379,10 +379,16 @@ const GetItems = async (query, user) => {
     return { fail: true, err }
   })
 
-  if (dataFina.fail || dataFina.ok === false) {
-    return { items: [], differentData: 0, message: FAIL }
+  let sumData = 0
+  let outstandingOrders = []
+
+  if (dataFina.ok) {
+    const resultFina = await dataFina.json()
+
+    sumData = resultFina.sumData
+    outstandingOrders = resultFina.outstandingOrders
   }
-  const { sumData, outstandingOrders } = await dataFina.json()
+
   const itemCount = await Item.countDocuments()
   let differentData = 0
 
