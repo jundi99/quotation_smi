@@ -56,6 +56,7 @@ const UpsertCustomer = async (body) => {
           salesman: joi.number().optional(),
           isActive: joi.boolean().default(false),
           email: joi.string().required(),
+          isCreate: joi.boolean().optional(),
         })
         .validateAsync(body)
     }
@@ -75,9 +76,14 @@ const UpsertCustomer = async (body) => {
     }).lean()
 
     body.salesman = salesmanData ? salesmanData._id : null
-    let newData = await Customer.findOne({ personNo: body.personNo }) // don't lean this because used for save()
+    let newData = await Customer.findOne({
+      $or: [{ personNo: body.personNo }, { email }],
+    }) // don't lean this because used for save()
 
     if (newData) {
+      if (body.isCreate) {
+        throw new StandardError('PersonNo / Email sudah ada')
+      }
       newData = _.merge(newData, body)
       newData.save()
     } else {
@@ -99,7 +105,11 @@ const UpsertCustomer = async (body) => {
     return newData
   } catch (error) {
     log('UpsertCustomer:', error)
-    throw new StandardError('Gagal menyimpan data customer')
+    if (error.message) {
+      throw new StandardError(`Gagal menyimpan data customer, ${error.message}`)
+    } else {
+      throw new StandardError('Gagal menyimpan data customer')
+    }
   }
 }
 

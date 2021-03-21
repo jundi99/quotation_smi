@@ -68,6 +68,7 @@ module.exports = `
     isActive: Boolean
     email: String
     authorize: AuthorizeUserInput
+    isCreate: Boolean
   }
 
   input PersonNoInput {
