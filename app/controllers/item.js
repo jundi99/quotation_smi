@@ -3,6 +3,10 @@ const {
   SMIModels: { ItemCategory, Item, Customer, PriceContract },
 } = require('../daos')
 const joi = require('joi')
+const { FINA_SMI_URI } = process.env
+const fetch = require('node-fetch')
+const normalizeUrl = require('normalize-url')
+const { log } = console
 
 const GetItemCategories = async (query) => {
   const { skip, limit, q } = await joi
@@ -143,8 +147,66 @@ const GetStatusItem = async (body) => {
   return status
 }
 
+const UpdateStockSupplierXls = async (fileName) => {
+  let dataFina = await fetch(
+    normalizeUrl(`${FINA_SMI_URI}/fina/check-item-excel`),
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        fileName,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+        bypass: true,
+      },
+    },
+  ).catch((err) => {
+    return { fail: true, err }
+  })
+
+  if (dataFina.fail || dataFina.ok === false) {
+    log('Fail UpdateStockSupplierXls:', dataFina)
+
+    throw new Error('Gagal update stock supplier')
+  }
+
+  dataFina = await dataFina.json()
+
+  const { rows } = dataFina
+
+  rows.shift()
+
+  const doSyncUpload = async (data) => {
+    const { itemNo, stockSupplier } = data
+
+    const isItemExist = await Item.findOne({ itemNo }).lean()
+
+    if (isItemExist) {
+      return Item.updateOne({ itemNo }, { stockSupplier })
+    }
+
+    return new Item(data).save()
+  }
+
+  rows.map((row) => {
+    const data = {
+      itemNo: row[0],
+      name: row[1],
+      unit: row[2],
+      stockSupplier: row[3],
+    }
+
+    doSyncUpload(data)
+
+    return true
+  })
+
+  return 'OK'
+}
+
 module.exports = {
   GetItemCategories,
   GetItemsQuo,
   GetStatusItem,
+  UpdateStockSupplierXls,
 }

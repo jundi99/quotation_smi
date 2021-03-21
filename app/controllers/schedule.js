@@ -8,6 +8,7 @@ const {
 const { STOCK } = require('../constants')
 const { log } = console
 const StandardError = require('../../utils/standard_error')
+const { UpdateStockSupplierXls } = require('./item')
 
 const autoUpdateStock = async (directRun) => {
   const schedule = await Schedule.findOne({ name: STOCK }).lean()
@@ -32,6 +33,8 @@ const autoUpdateStock = async (directRun) => {
   if (directRun) {
     if (options.host) {
       SyncMasterItem(options, { bypass: true })
+    } else if (schedule?.fileXLS) {
+      UpdateStockSupplierXls(schedule.fileXLS)
     }
     CheckQuoProceed()
   }
@@ -39,6 +42,8 @@ const autoUpdateStock = async (directRun) => {
     log(`${new Date()} | new timer: ${timer}`)
     if (options.host) {
       SyncMasterItem(options, { bypass: true })
+    } else if (schedule?.fileXLS) {
+      UpdateStockSupplierXls(schedule.fileXLS)
     }
     CheckQuoProceed()
   }, timer)
@@ -70,7 +75,7 @@ const UpdateTimerStock = async (body) => {
   }
 
   await Schedule.updateOne({ name: STOCK }, data, { upsert: true })
-  await autoUpdateStock(false)
+  await autoUpdateStock(true)
 
   return { message: 'OK' }
 }

@@ -81,7 +81,7 @@ module.exports = `
   }  
 
   input GetLimitCustomerInput {
-    personNo: Int!
+    personNo: String!
   }
 
   type GetLimitCustomerResponse {

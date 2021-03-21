@@ -52,10 +52,10 @@ const UpsertCustomer = async (body) => {
           isTax: joi.boolean().default(false),
           phone: joi.string().optional(),
           idType: joi.string().optional(),
-          image: joi.string().optional(),
+          image: joi.string().optional().allow(''),
           salesman: joi.number().optional(),
           isActive: joi.boolean().default(false),
-          email: joi.string().optional(),
+          email: joi.string().required(),
         })
         .validateAsync(body)
     }
