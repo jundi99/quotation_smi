@@ -6,7 +6,6 @@ const joi = require('joi')
 const { FINA_SMI_URI } = process.env
 const fetch = require('node-fetch')
 const normalizeUrl = require('normalize-url')
-const { log } = console
 
 const GetItemCategories = async (query) => {
   const { skip, limit, q } = await joi
@@ -165,8 +164,6 @@ const UpdateStockSupplierXls = async (fileName) => {
   })
 
   if (dataFina.fail || dataFina.ok === false) {
-    log('Fail UpdateStockSupplierXls:', dataFina)
-
     throw new Error('Gagal update stock supplier')
   }
 
