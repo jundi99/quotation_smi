@@ -6,7 +6,6 @@ const logger = require('morgan')
 const helmet = require('helmet')
 const useragent = require('express-useragent')
 const compression = require('compression')
-const bodyParser = require('body-parser')
 const { log } = console
 
 const appRoutes = require('./app/routes')
@@ -22,8 +21,8 @@ const auth = jwt({
 })
 
 app.use(logger('dev'))
-app.use(bodyParser.json({ limit: '5mb' }))
-app.use(bodyParser.urlencoded({ extended: true }))
+app.use(express.json({ limit: '5mb' }))
+app.use(express.urlencoded({ extended: true }))
 app.use(compression())
 app.use(useragent.express())
 app.use(express.json())
