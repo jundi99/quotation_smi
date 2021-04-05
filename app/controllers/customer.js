@@ -4,6 +4,7 @@ const {
 const joi = require('joi')
 const _ = require('lodash')
 const StandardError = require('../../utils/standard_error')
+const { isUndefined } = require('lodash')
 const { log } = console
 const GetCustomers = async (query) => {
   const { skip, limit, name, personNo, idType, isActive } = await joi
@@ -16,19 +17,20 @@ const GetCustomers = async (query) => {
       limit: joi.number().min(1).max(200).default(5),
     })
     .validateAsync(query)
+  const filterQuery = {
+    ...(personNo ? { personNo: new RegExp(personNo, 'gi') } : {}),
+    ...(name ? { name: new RegExp(name, 'gi') } : {}),
+    ...(idType ? { category: idType } : {}),
+    ...(!isUndefined(isActive) ? { isActive } : {}),
+  }
   const [customers, total] = await Promise.all([
-    Customer.find({
-      ...(personNo ? { personNo: new RegExp(personNo, 'gi') } : {}),
-      ...(name ? { name: new RegExp(name, 'gi') } : {}),
-      ...(idType ? { category: idType } : {}),
-      ...(isActive ? { isActive } : {}),
-    })
-      .sort({ customerId: 1 })
+    Customer.find(filterQuery)
+      .sort({ personNo: -1 })
       .skip(skip * limit)
       .limit(limit)
       .deepPopulate(['category', 'salesman', 'term'])
       .lean(),
-    Customer.countDocuments(),
+    Customer.countDocuments(filterQuery),
   ])
 
   return { customers, total }
@@ -52,7 +54,7 @@ const UpsertCustomer = async (body) => {
           isTax: joi.boolean().default(false),
           phone: joi.string().optional(),
           idType: joi.string().optional(),
-          image: joi.string().optional().allow(''),
+          image: joi.string().optional().allow('', null),
           salesman: joi.number().optional(),
           isActive: joi.boolean().default(false),
           email: joi.string().required(),

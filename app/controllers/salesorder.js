@@ -16,8 +16,11 @@ joi.objectId = require('joi-objectid')(joi)
 
 const CreateSO = async (salesOrder) => {
   try {
+    Reflect.deleteProperty(salesOrder, 'attachmentPO')
     const { personNo } = salesOrder
-    const customer = await Customer.findOne({ personNo }).lean()
+    const customer = await Customer.findOne({ personNo })
+      .populate('salesman')
+      .lean()
 
     salesOrder.customerId = customer.customerId
     salesOrder.isCreateNewCustomer = !customer.customerId
@@ -42,6 +45,10 @@ const CreateSO = async (salesOrder) => {
       return { message: FAIL }
     }
     const data = await dataFina.json()
+
+    if (data.customerId) {
+      await Customer.updateOne({ personNo }, { customerId: data.customerId })
+    }
 
     return { data, message: SUCCESS }
   } catch (error) {

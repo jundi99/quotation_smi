@@ -15,6 +15,7 @@ const {
   StatusQuo: { SENT, CLOSED },
 } = require('../constants')
 const { log } = console
+const _ = require('lodash')
 
 const SyncMasterItemCategory = async (user) => {
   const token = JwtSign(user)
@@ -99,6 +100,13 @@ const SyncMasterItem = async (opt, user) => {
 
     return new Item(newData).save()
   }
+
+  const updateItem = async (fina) => {
+    const newData = await NewItem(fina)
+
+    return Item.findOneAndUpdate({ itemNo: String(fina.ITEMNO) }, newData)
+  }
+
   const promiseCreate = [],
     promiseUpdate = []
 
@@ -108,14 +116,7 @@ const SyncMasterItem = async (opt, user) => {
     )
 
     if (dataQuo) {
-      if (dataQuo.stockSMI !== fina.STOCKSMI) {
-        promiseUpdate.push(
-          Item.findOneAndUpdate(
-            { itemNo: String(fina.ITEMNO) },
-            { stockSMI: fina.STOCKSMI },
-          ),
-        )
-      }
+      promiseUpdate.push(updateItem(fina))
     } else {
       promiseCreate.push(createNewItem(fina))
     }
@@ -219,20 +220,41 @@ const SyncMasterCustomer = async (user) => {
   }
   const { data, total } = await dataFina.json()
   const ids = data.map((fina) => fina.ID)
-  const existData = await Customer.find({ customerId: { $in: ids } }).lean()
-  const filterDataFinaNotExistsInMongo = data.filter(
-    (fina) => !existData.find((data) => data.customerId === fina.ID),
-  )
-
-  filterDataFinaNotExistsInMongo.map(async (data) => {
-    const newData = await NewCustomer(data)
+  const existData = await Customer.find({ customerId: { $in: ids } })
+  const createNewCustomer = async (fina) => {
+    const newData = await NewCustomer(fina)
 
     return new Customer(newData).save()
+  }
+  const updateCustomer = async (dataCust, fina) => {
+    const newData = await NewCustomer(fina)
+
+    dataCust = _.merge(dataCust, newData)
+
+    return dataCust.save()
+  }
+
+  const promiseCreate = [],
+    promiseUpdate = []
+
+  data.map((fina) => {
+    const dataCust = existData.find((data) => data.customerId === fina.ID)
+
+    if (dataCust) {
+      promiseUpdate.push(updateCustomer(dataCust, fina))
+    } else {
+      promiseCreate.push(createNewCustomer(fina))
+    }
+
+    return true
   })
+
+  await Promise.all(promiseCreate)
+  await Promise.all(promiseUpdate)
 
   return {
     total,
-    newData: filterDataFinaNotExistsInMongo.length,
+    newData: promiseCreate.length,
     message: SUCCESS,
   }
 }

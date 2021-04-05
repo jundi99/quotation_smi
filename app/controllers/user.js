@@ -44,6 +44,7 @@ const setupAdminMenu = async (data) => {
     await Menu.findOne({ id: 'master-salesman' }).lean(),
     await Menu.findOne({ id: 'master-customer' }).lean(),
     await Menu.findOne({ id: 'master-goods' }).lean(),
+    await Menu.findOne({ id: 'master-price' }).lean(),
     await Menu.findOne({ id: 'master-terms' }).lean(),
   )
 
@@ -87,6 +88,9 @@ const setupUserMenu = async (data, authorize) => {
   if (authorize.item.view) {
     dataSettingChild.push(await Menu.findOne({ id: 'master-goods' }).lean())
   }
+  if (authorize.price.view) {
+    dataSettingChild.push(await Menu.findOne({ id: 'master-price' }).lean())
+  }
   dataSettingChild.push(await Menu.findOne({ id: 'master-terms' }).lean())
   setting.children[0].children = dataSettingChild
 
@@ -94,7 +98,7 @@ const setupUserMenu = async (data, authorize) => {
 }
 
 const setupClienMenu = async (data, authorize) => {
-  data.push(await Menu.findOne({ id: 'home' }).lean())
+  // data.push(await Menu.findOne({ id: 'home' }).lean())
   const transaction = await Menu.findOne({ id: 'transaction' }).lean()
   const dataTrans = []
 

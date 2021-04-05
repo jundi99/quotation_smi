@@ -128,6 +128,7 @@ module.exports = `
   input UpdateUserByIdInput {
     userName: String
     profile: ProfileInput   
+    encryptedPassword: String
     authorize: AuthorizeUserInput     
   }
 

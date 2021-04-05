@@ -123,6 +123,17 @@ const CreateMenu = async () => {
 
   await new Menu(masterGoods).save()
 
+  const masterPrice = {
+    id: 'master-price',
+    title: 'Price',
+    translate: 'Price',
+    type: 'item',
+    icon: 'local_atm',
+    url: '/settings/price',
+  }
+
+  await new Menu(masterPrice).save()
+
   const masterTerms = {
     id: 'master-terms',
     title: 'Terms',
