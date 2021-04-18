@@ -9,12 +9,12 @@ module.exports = `
     total: Int
     newData: Int
     newUpdateStock: Int
-    message: String
+    status: String
   }
 
   type Mutation {
     SyncUser: SyncResponse
-    SyncItem: SyncItemResponse
+    SyncItem(cache: Boolean): SyncItemResponse
     SyncItemCategory: SyncResponse
     SyncCustomer: SyncResponse
     SyncSalesman: SyncResponse

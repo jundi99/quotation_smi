@@ -1,4 +1,4 @@
-const { FINA_SMI_URI } = process.env
+const { FINA_SMI_URI, REDIS_URI, REDIS_PORT } = process.env
 const fetch = require('node-fetch')
 const normalizeUrl = require('normalize-url')
 const { JwtSign } = require('../utils')
@@ -14,8 +14,10 @@ const {
 const {
   StatusQuo: { SENT, CLOSED },
 } = require('../constants')
-const { log } = console
+const { log, time, timeEnd } = console
 const _ = require('lodash')
+const asyncRedis = require('async-redis')
+const redis = asyncRedis.createClient(REDIS_PORT, REDIS_URI)
 
 const SyncMasterItemCategory = async (user) => {
   const token = JwtSign(user)
@@ -71,96 +73,166 @@ const SyncMasterItemCategory = async (user) => {
   }
 }
 
-const SyncMasterItem = async (opt, user) => {
-  const token = JwtSign(user)
+const syncItemPerSection = async (body) => {
+  const { opt, token, limit, lastId } = body
   const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/sync-item`), {
     method: 'POST',
     body: JSON.stringify({
-      opt,
+      opt, limit, lastId,
     }),
     headers: {
       'Content-Type': 'application/json',
-      ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
+      Authorization: `${token}`,
     },
   }).catch((err) => {
     return { fail: true, err }
   })
 
   if (dataFina.fail || dataFina.ok === false) {
-    log('Fail SyncMasterItem:', dataFina)
+    log('Fail syncItemPerSection:', dataFina)
 
     throw new Error(FAIL_SYNC_SERVER)
   }
-  const { data, total } = await dataFina.json()
-  const ids = data.map((fina) => fina.ITEMNO)
-  const dataItemQuo = await Item.find({ itemNo: { $in: ids } }).lean()
 
-  const createNewItem = async (fina) => {
-    const newData = await NewItem(fina)
+  const data = await dataFina.json()
 
-    return new Item(newData).save()
-  }
+  return data
+}
 
-  const updateItem = async (fina) => {
-    const newData = await NewItem(fina)
 
-    return Item.findOneAndUpdate({ itemNo: String(fina.ITEMNO) }, newData)
-  }
-
-  const promiseCreate = [],
-    promiseUpdate = []
-
-  data.map((fina) => {
-    const dataQuo = dataItemQuo.find(
-      (data) => data.itemNo === String(fina.ITEMNO),
-    )
-
-    if (dataQuo) {
-      promiseUpdate.push(updateItem(fina))
-    } else {
-      promiseCreate.push(createNewItem(fina))
-    }
-
-    return true
+const countTotItemFina = async (token) => {
+  const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/total-item`), {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `${token}`,
+    },
+  }).catch((err) => {
+    return { fail: true, err }
   })
 
-  await Promise.all(promiseCreate)
-  await Promise.all(promiseUpdate)
+  if (dataFina.fail || dataFina.ok === false) {
+    log('Fail countTotItemFina:', dataFina)
+
+    throw new Error(FAIL_SYNC_SERVER)
+  }
+
+  const { total } = await dataFina.json()
+
+  return total
+}
+
+const proceedItemFina = async (data) => {
+  try {
+    const ids = data.map((fina) => fina.ITEMNO)
+    const dataItemQuo = await Item.find({ itemNo: { $in: ids } }).lean()
+    const promiseUpdate = []
+    const promiseCreate = []
+    const updateItem = async (fina) => {
+      const newData = await NewItem(fina)
+
+      return Item.findOneAndUpdate({ itemNo: String(fina.ITEMNO) }, newData)
+    }
+
+    data.map((fina) => {
+      const dataQuo = dataItemQuo.find(
+        (data) => data.itemNo === String(fina.ITEMNO),
+      )
+
+      if (dataQuo) {
+        promiseUpdate.push(updateItem(fina))
+      } else {
+        promiseCreate.push(NewItem(fina))
+      }
+
+      return true
+    })
+
+    if (promiseCreate.length) {
+      const bulkData = await Promise.all(promiseCreate)
+
+      await Item.create(bulkData)
+    } else if (promiseUpdate.length) {
+      await Promise.all(promiseUpdate)
+    }
+
+    return { totalCreated: promiseCreate.length, totalUpdated: promiseUpdate.length }
+  } catch (error) {
+    log('error db:', error)
+
+    throw error
+  }
+}
+
+const proceedAsyncItemFina = async (opt, user, rKey) => {
+  const token = JwtSign(user, '1h')
+  const total = await countTotItemFina(token)
+  const limit = 1000
+
+  let getLastId = null
+  let countTotalUpdated = 0
+  let countTotalCreated = 0
+
+  time()
+  for (let index = 0; index < Math.ceil(total / limit); index++) {
+    // eslint-disable-next-line no-await-in-loop
+    const { data, lastId } = await syncItemPerSection({ opt, token, limit, lastId: getLastId })
+    // eslint-disable-next-line no-await-in-loop
+    const { totalUpdated, totalCreated } = await proceedItemFina(data)
+
+    countTotalUpdated += totalUpdated
+    countTotalCreated += totalCreated
+
+    getLastId = lastId
+    log(`lastId: ${getLastId} | countTotalCreated:${countTotalCreated}`)
+    // eslint-disable-next-line no-await-in-loop
+    await redis.set(rKey, JSON.stringify({
+      status: 'processing', total,
+      newData: countTotalCreated,
+      newUpdateStock: countTotalUpdated,
+    }), 'EX', 180)
+  }
+
+  timeEnd()
+  log('DONE!')
+
+  await redis.set(rKey, JSON.stringify({
+    status: 'completed', total,
+    newData: countTotalCreated,
+    newUpdateStock: countTotalUpdated,
+  }))
+}
+
+const SyncMasterItem = async (opt, cache = true, user) => {
+  const rKey = `syncItem:${user.userName}`
+
+  if (cache === false) {
+    redis.del(rKey)
+  }
+  const val = await redis.get(rKey)
+  const rVal = JSON.parse(val)
+  const defaultTotal = {
+    total: 0,
+    newData: 0,
+    newUpdateStock: 0,
+  }
+
+  if (rVal) {
+    // if (rVal.status === 'completed') {
+    //   return rVal
+    // }
+
+    return rVal
+  }
+
+  if (cache) {
+    proceedAsyncItemFina(opt, user, rKey)
+    await redis.set(rKey, JSON.stringify({ status: 'processing', ...defaultTotal }), 'EX', 180)
+  }
 
   return {
-    total,
-    newData: promiseCreate.length,
-    newUpdateStock: promiseUpdate.length,
-    message: SUCCESS,
+    status: 'processing', ...defaultTotal,
   }
-  // let doPromises = []
-
-  // data.map((fina) => doPromises.push(NewItem(fina)))
-  // const dataItem = await Promise.all(doPromises)
-
-  // doPromises = []
-
-  // dataItem.map((fina) => {
-  //   return doPromises.push(
-  //     Item.findOneAndUpdate({ itemNo: fina.itemNo }, fina, {
-  //       upsert: true,
-  //       rawResult: true,
-  //     }), //kelemahan cara ini ketika data tidak di isi maka tidak mengikuti default value schema
-  //   )
-  // })
-
-  // const results = await Promise.all(doPromises)
-  // const newData = results.reduce((prev, curr) => {
-  //   const value = curr.lastErrorObject.updatedExisting ? 0 : 1
-
-  //   return prev + value
-  // }, 0)
-
-  // return {
-  //   total,
-  //   newData,
-  //   message: SUCCESS,
-  // }
 }
 
 const SyncMasterUser = async () => {

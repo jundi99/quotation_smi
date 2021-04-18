@@ -33,7 +33,7 @@ const autoUpdateStock = async (directRun) => {
   if (directRun) {
     if (options.host) {
       SyncMasterItem(options, { bypass: true })
-    } else if (schedule?.fileXLS) {
+    } else if (schedule && schedule.fileXLS) {
       UpdateStockSupplierXls(schedule.fileXLS)
     }
     CheckQuoProceed()
@@ -42,7 +42,7 @@ const autoUpdateStock = async (directRun) => {
     log(`${new Date()} | new timer: ${timer}`)
     if (options.host) {
       SyncMasterItem(options, { bypass: true })
-    } else if (schedule?.fileXLS) {
+    } else if (schedule && schedule.fileXLS) {
       UpdateStockSupplierXls(schedule.fileXLS)
     }
     CheckQuoProceed()
