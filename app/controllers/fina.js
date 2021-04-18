@@ -78,7 +78,9 @@ const syncItemPerSection = async (body) => {
   const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/sync-item`), {
     method: 'POST',
     body: JSON.stringify({
-      opt, limit, lastId,
+      opt,
+      limit,
+      lastId,
     }),
     headers: {
       'Content-Type': 'application/json',
@@ -99,15 +101,17 @@ const syncItemPerSection = async (body) => {
   return data
 }
 
-
 const countTotItemFina = async (token) => {
-  const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/total-item`), {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `${token}`,
+  const dataFina = await fetch(
+    normalizeUrl(`${FINA_SMI_URI}/fina/total-item`),
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `${token}`,
+      },
     },
-  }).catch((err) => {
+  ).catch((err) => {
     return { fail: true, err }
   })
 
@@ -156,7 +160,10 @@ const proceedItemFina = async (data) => {
       await Promise.all(promiseUpdate)
     }
 
-    return { totalCreated: promiseCreate.length, totalUpdated: promiseUpdate.length }
+    return {
+      totalCreated: promiseCreate.length,
+      totalUpdated: promiseUpdate.length,
+    }
   } catch (error) {
     log('error db:', error)
 
@@ -176,7 +183,12 @@ const proceedAsyncItemFina = async (opt, user, rKey) => {
   time()
   for (let index = 0; index < Math.ceil(total / limit); index++) {
     // eslint-disable-next-line no-await-in-loop
-    const { data, lastId } = await syncItemPerSection({ opt, token, limit, lastId: getLastId })
+    const { data, lastId } = await syncItemPerSection({
+      opt,
+      token,
+      limit,
+      lastId: getLastId,
+    })
     // eslint-disable-next-line no-await-in-loop
     const { totalUpdated, totalCreated } = await proceedItemFina(data)
 
@@ -186,21 +198,31 @@ const proceedAsyncItemFina = async (opt, user, rKey) => {
     getLastId = lastId
     log(`lastId: ${getLastId} | countTotalCreated:${countTotalCreated}`)
     // eslint-disable-next-line no-await-in-loop
-    await redis.set(rKey, JSON.stringify({
-      status: 'processing', total,
-      newData: countTotalCreated,
-      newUpdateStock: countTotalUpdated,
-    }), 'EX', 180)
+    await redis.set(
+      rKey,
+      JSON.stringify({
+        status: 'processing',
+        total,
+        newData: countTotalCreated,
+        newUpdateStock: countTotalUpdated,
+      }),
+      'EX',
+      180,
+    )
   }
 
   timeEnd()
   log('DONE!')
 
-  await redis.set(rKey, JSON.stringify({
-    status: 'completed', total,
-    newData: countTotalCreated,
-    newUpdateStock: countTotalUpdated,
-  }))
+  await redis.set(
+    rKey,
+    JSON.stringify({
+      status: 'completed',
+      total,
+      newData: countTotalCreated,
+      newUpdateStock: countTotalUpdated,
+    }),
+  )
 }
 
 const SyncMasterItem = async (opt, cache = true, user) => {
@@ -227,11 +249,17 @@ const SyncMasterItem = async (opt, cache = true, user) => {
 
   if (cache) {
     proceedAsyncItemFina(opt, user, rKey)
-    await redis.set(rKey, JSON.stringify({ status: 'processing', ...defaultTotal }), 'EX', 180)
+    await redis.set(
+      rKey,
+      JSON.stringify({ status: 'processing', ...defaultTotal }),
+      'EX',
+      180,
+    )
   }
 
   return {
-    status: 'processing', ...defaultTotal,
+    status: 'processing',
+    ...defaultTotal,
   }
 }
 
