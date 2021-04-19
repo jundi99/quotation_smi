@@ -132,11 +132,6 @@ const proceedItemFina = async (data) => {
     const dataItemQuo = await Item.find({ itemNo: { $in: ids } }).lean()
     const promiseUpdate = []
     const promiseCreate = []
-    const updateItem = async (fina) => {
-      const newData = await NewItem(fina)
-
-      return Item.findOneAndUpdate({ itemNo: String(fina.ITEMNO) }, newData)
-    }
 
     data.map((fina) => {
       const dataQuo = dataItemQuo.find(
@@ -144,7 +139,7 @@ const proceedItemFina = async (data) => {
       )
 
       if (dataQuo) {
-        promiseUpdate.push(updateItem(fina))
+        promiseUpdate.push(NewItem(fina))
       } else {
         promiseCreate.push(NewItem(fina))
       }
@@ -157,7 +152,18 @@ const proceedItemFina = async (data) => {
 
       await Item.create(bulkData)
     } else if (promiseUpdate.length) {
-      await Promise.all(promiseUpdate)
+      let bulkData = await Promise.all(promiseUpdate)
+
+      bulkData = bulkData.map((data) => {
+        return {
+          updateOne: {
+            filter: { itemNo: data.itemNo },
+            update: data,
+          },
+        }
+      })
+
+      Item.bulkWrite(bulkData)
     }
 
     return {
@@ -174,7 +180,7 @@ const proceedItemFina = async (data) => {
 const proceedAsyncItemFina = async (opt, user, rKey) => {
   const token = JwtSign(user, '1h')
   const total = await countTotItemFina(token)
-  const limit = 1000
+  const limit = 5000
 
   let getLastId = null
   let countTotalUpdated = 0
@@ -196,7 +202,9 @@ const proceedAsyncItemFina = async (opt, user, rKey) => {
     countTotalCreated += totalCreated
 
     getLastId = lastId
-    log(`lastId: ${getLastId} | countTotalCreated:${countTotalCreated}`)
+    log(
+      `lastId: ${getLastId} | countTotalCreated:${countTotalCreated} | countTotalUpdated:${countTotalUpdated}`,
+    )
     // eslint-disable-next-line no-await-in-loop
     await redis.set(
       rKey,
@@ -207,7 +215,7 @@ const proceedAsyncItemFina = async (opt, user, rKey) => {
         newUpdateStock: countTotalUpdated,
       }),
       'EX',
-      180,
+      1200,
     )
   }
 
@@ -253,7 +261,7 @@ const SyncMasterItem = async (opt, cache = true, user) => {
       rKey,
       JSON.stringify({ status: 'processing', ...defaultTotal }),
       'EX',
-      180,
+      1200,
     )
   }
 
