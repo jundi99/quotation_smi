@@ -79,7 +79,7 @@ const UpsertCustomer = async (body) => {
 
     body.salesman = salesmanData ? salesmanData._id : null
     let newData = await Customer.findOne({
-      $or: [{ personNo: body.personNo }, { email }],
+      $or: [{ personNo: body.personNo }, ...(email ? { email } : {})],
     }) // don't lean this because used for save()
 
     if (newData) {
