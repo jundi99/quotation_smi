@@ -29,13 +29,13 @@ const UpsertTerm = async (body) => {
       .object({
         name: joi.string().required(),
         note: joi.string().optional(),
-        type: joi.string().allow(['Reference', 'Payment', 'Delivery', 'Validity']),
+        type: joi.string(),
         isCreate: joi.boolean().optional().default(true),
       })
       .validateAsync(body)
 
     let newData = await Term.findOne({
-      $and: [{ name }, { type }]
+      $and: [{ name }, { type }],
     }) // don't lean this because used for save()
 
     if (newData) {
@@ -61,5 +61,5 @@ const UpsertTerm = async (body) => {
 
 module.exports = {
   GetTerms,
-  UpsertTerm
+  UpsertTerm,
 }

@@ -177,7 +177,6 @@ const GetSalesmen = async (query) => {
   return salesmen
 }
 
-
 const GetCustCategories = () => CustCategory.find({}).lean()
 
 module.exports = {
