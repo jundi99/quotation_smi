@@ -18,6 +18,5 @@ module.exports = `
     SyncItemCategory: SyncResponse
     SyncCustomer: SyncResponse
     SyncSalesman: SyncResponse
-    SyncTerm: SyncResponse
   }
 `

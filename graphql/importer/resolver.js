@@ -53,11 +53,6 @@ const resolvers = {
 
       return fina.SyncMasterSalesman(user)
     },
-    async SyncTerm(_, args, { user }) {
-      await ValidateUser(user)
-
-      return fina.SyncMasterTerm(user)
-    },
   },
 }
 

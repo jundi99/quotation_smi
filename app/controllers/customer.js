@@ -1,5 +1,5 @@
 const {
-  SMIModels: { Customer, CustCategory, Salesman, Term },
+  SMIModels: { Customer, CustCategory, Salesman },
 } = require('../daos')
 const joi = require('joi')
 const _ = require('lodash')
@@ -28,7 +28,7 @@ const GetCustomers = async (query) => {
       .sort({ personNo: -1 })
       .skip(skip * limit)
       .limit(limit)
-      .deepPopulate(['category', 'salesman', 'term'])
+      .deepPopulate(['category', 'salesman'])
       .lean(),
     Customer.countDocuments(filterQuery),
   ])
@@ -79,7 +79,7 @@ const UpsertCustomer = async (body) => {
 
     body.salesman = salesmanData ? salesmanData._id : null
     let newData = await Customer.findOne({
-      $or: [{ personNo: body.personNo }, ...(email ? { email } : {})],
+      $or: [{ personNo: body.personNo }, ...(email ? [{ email }] : [])],
     }) // don't lean this because used for save()
 
     if (newData) {
@@ -133,7 +133,7 @@ const GetCustomer = async (body) => {
     })
     .validateAsync(body)
   const customer = await Customer.findOne({ personNo })
-    .deepPopulate(['category', 'salesman', 'term'])
+    .deepPopulate(['category', 'salesman'])
     .lean()
 
   return customer
@@ -177,25 +177,6 @@ const GetSalesmen = async (query) => {
   return salesmen
 }
 
-const GetTerms = async (query) => {
-  const { skip, limit, q } = await joi
-    .object({
-      q: joi.string().optional(),
-      skip: joi.number().min(0).max(1000).default(0),
-      limit: joi.number().min(1).max(200).default(5),
-    })
-    .validateAsync(query)
-
-  const terms = await Term.find({
-    $or: [{ name: new RegExp(q, 'gi') }],
-  })
-    .sort({ termId: 1 })
-    .skip(skip * limit)
-    .limit(limit)
-    .lean()
-
-  return terms
-}
 
 const GetCustCategories = () => CustCategory.find({}).lean()
 
@@ -206,6 +187,5 @@ module.exports = {
   DeleteCustomer,
   UpsertCustCategory,
   GetSalesmen,
-  GetTerms,
   GetCustCategories,
 }

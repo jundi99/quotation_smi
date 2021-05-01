@@ -11,7 +11,6 @@ module.exports.Customer = `
   note: String
   outstandingAR: Float
   salesman: Salesman
-  term: Term
   isActive: Boolean
   image: String
   isTax: Boolean
@@ -34,12 +33,6 @@ module.exports = `
     stateProve: String
     zipCode: String
     country: String
-  }
-
-  type Term {
-    termId: Int
-    name: String
-    note: String
   }
 
   type GetCustomersResponse {
@@ -96,7 +89,6 @@ module.exports = `
     GetCustomers(input: GetCustomersInput): GetCustomersResponse
     GetCustomer(input: PersonNoInput): Customer
     GetSalesmen(input: GetMasterInput): [Salesman]
-    GetTerms(input: GetMasterInput): [Term]
     GetCustCategories: [CustCategory]
     GetLimitCustomer(input: GetLimitCustomerInput): GetLimitCustomerResponse
   }
