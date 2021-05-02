@@ -12,6 +12,9 @@ const {
 const StandardError = require('../../utils/standard_error')
 const numeral = require('numeral')
 
+joi.objectId = require('joi-objectid')(joi)
+
+
 moment.locale('id')
 joi.objectId = require('joi-objectid')(joi)
 const nodemailer = require('nodemailer')
@@ -33,6 +36,7 @@ const GetQuotations = async (query) => {
     dateTo,
     status,
     personNo,
+    salesman,
   } = await joi
     .object({
       itemNo: joi.string().optional(),
@@ -43,6 +47,7 @@ const GetQuotations = async (query) => {
       skip: joi.number().min(0).max(1000).default(0),
       limit: joi.number().min(1).max(200).default(5),
       personNo: joi.string().optional(),
+      salesman: joi.objectId().optional(),
     })
     .validateAsync(query)
   const [quotations, total] = await Promise.all([
@@ -51,6 +56,7 @@ const GetQuotations = async (query) => {
         ? { createdAt: { $gte: dateFrom, $lte: dateTo } }
         : {}),
       ...(personNo ? { personNo } : {}),
+      ...(salesman ? { salesman } : {}),
       ...(status ? { status } : {}),
       ...(itemNo ? { 'detail.itemNo': new RegExp(itemNo, 'gi') } : {}),
       ...(itemName ? { 'detail.itemName': new RegExp(itemName, 'gi') } : {}),
@@ -58,6 +64,7 @@ const GetQuotations = async (query) => {
       .sort({ _id: -1 })
       .skip(skip * limit)
       .limit(limit)
+      .deepPopulate(['salesman'])
       .lean(),
     Quotation.countDocuments(),
   ])
@@ -255,6 +262,9 @@ const UpsertQuotation = async (body) => {
           note: joi.string().optional().allow(''),
           status: joi.string().default(QUEUE),
           deliveryStatus: joi.string().default('Belum Terkirim'),
+          salesman: joi.objectId().required(),
+          reference: joi.string().optional(),
+          validity: joi.string().optional(),
         })
         .validateAsync(body)
     }
@@ -356,6 +366,8 @@ const NotifExpireQuotation = async () => {
         personNo: 1,
         status: 1,
         isRemindExpire: 1,
+        reference: 1,
+        validity: 1,
         daySince: {
           $trunc: {
             $divide: [

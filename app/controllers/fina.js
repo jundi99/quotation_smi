@@ -18,6 +18,7 @@ const { log, time, timeEnd } = console
 const _ = require('lodash')
 const asyncRedis = require('async-redis')
 const redis = asyncRedis.createClient(REDIS_PORT, REDIS_URI)
+const { GetStockWarehouses } = require('./warehouseconfig')
 
 const SyncMasterItemCategory = async (user) => {
   const token = JwtSign(user)
@@ -74,13 +75,14 @@ const SyncMasterItemCategory = async (user) => {
 }
 
 const syncItemPerSection = async (body) => {
-  const { opt, token, limit, lastId } = body
+  const { opt, token, limit, lastId, warehouseIds } = body
   const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/sync-item`), {
     method: 'POST',
     body: JSON.stringify({
       opt,
       limit,
       lastId,
+      warehouseIds,
     }),
     headers: {
       'Content-Type': 'application/json',
@@ -185,6 +187,9 @@ const proceedAsyncItemFina = async (opt, user, rKey) => {
   let getLastId = null
   let countTotalUpdated = 0
   let countTotalCreated = 0
+  let progress = 0
+  const percentage = 100 / Math.ceil(total / limit)
+  const warehouseIds = await GetStockWarehouses()
 
   time()
   for (let index = 0; index < Math.ceil(total / limit); index++) {
@@ -194,6 +199,7 @@ const proceedAsyncItemFina = async (opt, user, rKey) => {
       token,
       limit,
       lastId: getLastId,
+      warehouseIds,
     })
     // eslint-disable-next-line no-await-in-loop
     const { totalUpdated, totalCreated } = await proceedItemFina(data)
@@ -202,6 +208,7 @@ const proceedAsyncItemFina = async (opt, user, rKey) => {
     countTotalCreated += totalCreated
 
     getLastId = lastId
+    progress += percentage
     log(
       `lastId: ${getLastId} | countTotalCreated:${countTotalCreated} | countTotalUpdated:${countTotalUpdated}`,
     )
@@ -213,6 +220,7 @@ const proceedAsyncItemFina = async (opt, user, rKey) => {
         total,
         newData: countTotalCreated,
         newUpdateStock: countTotalUpdated,
+        progress,
       }),
       'EX',
       1200,
@@ -229,6 +237,7 @@ const proceedAsyncItemFina = async (opt, user, rKey) => {
       total,
       newData: countTotalCreated,
       newUpdateStock: countTotalUpdated,
+      progress: 100,
     }),
   )
 }
@@ -245,6 +254,7 @@ const SyncMasterItem = async (opt, cache = true, user) => {
     total: 0,
     newData: 0,
     newUpdateStock: 0,
+    progress: 0,
   }
 
   if (rVal) {
@@ -255,7 +265,7 @@ const SyncMasterItem = async (opt, cache = true, user) => {
     return rVal
   }
 
-  if (cache) {
+  if (cache || rVal === null) {
     proceedAsyncItemFina(opt, user, rKey)
     await redis.set(
       rKey,
@@ -566,6 +576,32 @@ const CheckQuoProceed = async () => {
   )
 }
 
+const GetListWarehouse = async (user) => {
+  const token = JwtSign(user)
+  const dataFina = await fetch(
+    normalizeUrl(`${FINA_SMI_URI}/fina/list-warehouse`),
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
+      },
+    },
+  ).catch((err) => {
+    return { fail: true, err }
+  })
+
+  if (dataFina.fail || dataFina.ok === false) {
+    return { warehouses: [], message: FAIL }
+  }
+  const data = await dataFina.json()
+
+  return {
+    ...data,
+    message: SUCCESS,
+  }
+}
+
 module.exports = {
   SyncMasterItem,
   SyncMasterUser,
@@ -575,4 +611,5 @@ module.exports = {
   GetItems,
   GetLimitCustomer,
   CheckQuoProceed,
+  GetListWarehouse,
 }

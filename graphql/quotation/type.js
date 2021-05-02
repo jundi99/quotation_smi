@@ -15,6 +15,9 @@ module.exports.Quotation = `
   isConfirm: Boolean
   status: String
   deliveryStatus: String
+  salesman: Salesman
+  reference: String
+  validity: String
 `
 
 module.exports = `
@@ -58,6 +61,7 @@ module.exports = `
     dateTo: String
     status: StatusQuoSO
     personNo: String
+    salesman: ID
   }
 
   input DetailQuotationInput {
@@ -84,6 +88,9 @@ module.exports = `
     note: String
     status: StatusQuoSO
     deliveryStatus: String
+    salesman: ID
+    reference: String
+    validity: String
   }
 
   input QuoIdInput {

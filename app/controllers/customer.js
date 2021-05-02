@@ -6,6 +6,7 @@ const _ = require('lodash')
 const StandardError = require('../../utils/standard_error')
 const { isUndefined } = require('lodash')
 const { log } = console
+
 const GetCustomers = async (query) => {
   const { skip, limit, name, personNo, idType, isActive } = await joi
     .object({

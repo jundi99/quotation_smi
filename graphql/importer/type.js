@@ -10,6 +10,7 @@ module.exports = `
     newData: Int
     newUpdateStock: Int
     status: String
+    progress: Float
   }
 
   type Mutation {

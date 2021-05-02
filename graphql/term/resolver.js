@@ -16,6 +16,11 @@ const resolvers = {
 
       return term.UpsertTerm(input)
     },
+    async DeleteTerm(_, { _id }, { user }) {
+      await ValidateUser(user)
+
+      return term.DeleteTerm({ _id })
+    },
   },
 }
 
