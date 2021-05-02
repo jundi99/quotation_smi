@@ -5,12 +5,16 @@ const joi = require('joi')
 // const StandardError = require('../../utils/standard_error')
 
 const UpdateConfigWarehouse = async (body) => {
-  const {warehouses} = await joi
-  .object({
-    warehouses: joi.array().items(joi.object()),
-  })
-  .validateAsync(body)
-  const result = await WarehouseConfig.findOneAndUpdate({}, {warehouses}, {new: true, upsert: true}).lean()
+  const { warehouses } = await joi
+    .object({
+      warehouses: joi.array().items(joi.object()),
+    })
+    .validateAsync(body)
+  const result = await WarehouseConfig.findOneAndUpdate(
+    {},
+    { warehouses },
+    { new: true, upsert: true },
+  ).lean()
 
   result.updatedAt = result.updatedAt.toLocaleString()
 
@@ -21,7 +25,7 @@ const GetWarehouseConfig = async () => {
   const result = await WarehouseConfig.findOne().lean()
 
   if (!result) {
-    return { warehouses: [], updatedAt: null}
+    return { warehouses: [], updatedAt: null }
   }
 
   result.updatedAt = result.updatedAt.toLocaleString()
@@ -32,9 +36,8 @@ const GetWarehouseConfig = async () => {
 const GetStockWarehouses = async () => {
   const whConfig = await WarehouseConfig.findOne().lean()
 
-  return whConfig.warehouses.map( wh => wh.warehouseId).join()
+  return whConfig.warehouses.map((wh) => wh.warehouseId).join()
 }
-
 
 module.exports = {
   UpdateConfigWarehouse,
