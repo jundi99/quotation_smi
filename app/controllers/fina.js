@@ -239,6 +239,8 @@ const proceedAsyncItemFina = async (opt, user, rKey) => {
       newUpdateStock: countTotalUpdated,
       progress: 100,
     }),
+    'EX',
+    1200,
   )
 }
 
