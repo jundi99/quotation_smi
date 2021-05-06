@@ -147,58 +147,63 @@ const GetStatusItem = async (body) => {
 }
 
 const UpdateStockSupplierXls = async (fileName) => {
-  let dataFina = await fetch(
-    normalizeUrl(`${FINA_SMI_URI}/fina/check-item-excel`),
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        fileName,
-      }),
-      headers: {
-        'Content-Type': 'application/json',
-        bypass: true,
+  try {
+    let dataFina = await fetch(
+      normalizeUrl(`${FINA_SMI_URI}/fina/check-item-excel`),
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          fileName,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+          bypass: true,
+        },
       },
-    },
-  ).catch((err) => {
-    return { fail: true, err }
-  })
+    ).catch((err) => {
+      return { fail: true, err }
+    })
 
-  if (dataFina.fail || dataFina.ok === false) {
-    throw new Error('Gagal update stock supplier')
-  }
-
-  dataFina = await dataFina.json()
-
-  const { rows } = dataFina
-
-  rows.shift()
-
-  const doSyncUpload = async (data) => {
-    const { itemNo, stockSupplier } = data
-
-    const isItemExist = await Item.findOne({ itemNo }).lean()
-
-    if (isItemExist) {
-      return Item.updateOne({ itemNo }, { stockSupplier })
+    if (dataFina.fail || dataFina.ok === false) {
+      throw new Error('Gagal update stock supplier')
     }
 
-    return new Item(data).save()
-  }
+    dataFina = await dataFina.json()
 
-  rows.map((row) => {
-    const data = {
-      itemNo: row[0],
-      name: row[1],
-      unit: row[2],
-      stockSupplier: row[3],
+    const { rows } = dataFina
+
+    rows.shift()
+
+    const doSyncUpload = async (data) => {
+      const { itemNo, stockSupplier } = data
+
+      const isItemExist = await Item.findOne({ itemNo }).lean()
+
+      if (isItemExist) {
+        return Item.updateOne({ itemNo }, { stockSupplier })
+      }
+
+      return new Item(data).save()
     }
 
-    doSyncUpload(data)
+    rows.map((row) => {
+      const data = {
+        itemNo: row[0],
+        name: row[1],
+        unit: row[2],
+        stockSupplier: row[3],
+      }
 
-    return true
-  })
+      doSyncUpload(data)
 
-  return 'OK'
+      return true
+    })
+
+    return 'OK'
+  } catch (error) {
+    return error
+  }
+
 }
 
 module.exports = {

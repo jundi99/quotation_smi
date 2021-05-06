@@ -260,10 +260,6 @@ const SyncMasterItem = async (opt, cache = true, user) => {
   }
 
   if (rVal) {
-    // if (rVal.status === 'completed') {
-    //   return rVal
-    // }
-
     return rVal
   }
 

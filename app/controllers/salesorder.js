@@ -73,7 +73,7 @@ const UpdateSO = async (body) => {
     { quoNo: body.quoNo },
     body,
     { new: true },
-  ).lean()
+  ).populate('salesman').lean()
 
   if (salesOrder) {
     CreateSO(salesOrder)
