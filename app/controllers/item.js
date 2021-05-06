@@ -203,7 +203,6 @@ const UpdateStockSupplierXls = async (fileName) => {
   } catch (error) {
     return error
   }
-
 }
 
 module.exports = {
