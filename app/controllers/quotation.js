@@ -11,6 +11,9 @@ const {
 } = require('../constants')
 const StandardError = require('../../utils/standard_error')
 const numeral = require('numeral')
+const ejs = require('ejs')
+const pdf = require('html-pdf')
+const path = require('path')
 
 joi.objectId = require('joi-objectid')(joi)
 
@@ -429,6 +432,53 @@ const CheckQuotationExpired = async () => {
   return Promise.all(doPromises)
 }
 
+const GenerateReport = async () => {
+  const data = {
+    // invoiceNumber: order.invoiceNumber,
+    // updatedAt: formatDate(order.updatedAt, 'DD MMMM YYYY'),
+    // senderName: order.cart.senderName,
+    // products: combineProducts,
+    // shippingPrice: formatNumber(order.cart.price.shipping),
+    // totalPrice: formatNumber(order.totalPriceBuyerInvoice),
+    // receiverName: address.receiverName,
+    // receiverAddress: `${address.receiverAddress}, ${address.village.name}, ${address.district.name}, ${address.regency.name}, ${address.province.name}, ${address.village.postalCode}`,
+    // phoneNumber: address.phoneNumber,
+  }
+  const html = await ejs.renderFile(
+    path.join(__dirname, '../utils/view_pdf/', 'design.ejs'),
+    data,
+    { async: true },
+  )
+
+  const options = {
+    // format: 'A4', // allowed units: A3, A4, A5, Legal, Letter, Tabloid
+    // orientation: 'portrait', // portrait or landscape
+    width: '800px',
+    'header': {
+      'height': '0',
+    },
+  }
+
+  pdf
+    .create(html, options)
+    .toFile(path.join(__dirname, '../utils/view_pdf/124.pdf'), (err, res) => {
+      if (err) {
+        log('error report', err)
+      }
+      log(res.filename)
+    })
+  // pdf.create(html, options).toBuffer((err, buffer) => {
+  //   if (err) {
+  //     throw err
+  //   }
+
+  //   return res.json({
+  //     docBase64: buffer.toString('base64'),
+  //     fileName: `${123}.pdf`,
+  //   })
+  // })
+}
+
 const BuyItemQuoAgain = async (quoNo) => {
   const quotation = await Quotation.findOne(
     { quoNo },
@@ -521,4 +571,5 @@ module.exports = {
   CheckQuotationExpired,
   NotifExpireQuotation,
   BuyItemQuoAgain,
+  GenerateReport,
 }
