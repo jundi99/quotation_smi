@@ -454,8 +454,8 @@ const GenerateReport = async () => {
     // format: 'A4', // allowed units: A3, A4, A5, Legal, Letter, Tabloid
     // orientation: 'portrait', // portrait or landscape
     width: '800px',
-    'header': {
-      'height': '0',
+    header: {
+      height: '0',
     },
   }
 
