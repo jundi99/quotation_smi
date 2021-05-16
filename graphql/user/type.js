@@ -81,10 +81,15 @@ module.exports = `
     personNo: String
   }
 
+  type GetUsersResponse {
+    users: [MixUserCust]
+    total: Int
+  }
+
   type Query {
     CurrentUserMenu: [MenuResponse]
     GetUser: User
-    GetUsers(input: GetUsersInput): [MixUserCust]
+    GetUsers(input: GetUsersInput): GetUsersResponse
   }
 
   type LoginResponse {

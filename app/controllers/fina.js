@@ -500,7 +500,7 @@ const GetItems = async (query, user) => {
     return item
   })
 
-  return { items, differentData, message: SUCCESS }
+  return { items, differentData, message: SUCCESS, total: itemCount }
 }
 
 const GetLimitCustomer = async (user, body) => {

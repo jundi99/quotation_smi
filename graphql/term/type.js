@@ -33,8 +33,13 @@ module.exports = `
     nModified: Int
   }
 
+  type GetTermsResponse {
+    terms: [Term]
+    total: Int
+  }
+  
   type Query {
-    GetTerms(input: GetTermsInput): [Term]    
+    GetTerms(input: GetTermsInput): GetTermsResponse    
   }
 
   type Mutation {

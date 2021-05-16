@@ -55,6 +55,7 @@ module.exports = `
     items: [Item]
     differentData: Int
     message: String
+    total: Int
   }
   
   input GetItemsInput {

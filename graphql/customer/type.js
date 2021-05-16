@@ -85,10 +85,14 @@ module.exports = `
     message: String
   }
 
+  type GetSalesmenResponse {
+    salesmen: [Salesman]
+    total: Int
+  }
   type Query {
     GetCustomers(input: GetCustomersInput): GetCustomersResponse
     GetCustomer(input: PersonNoInput): Customer
-    GetSalesmen(input: GetMasterInput): [Salesman]
+    GetSalesmen(input: GetMasterInput): GetSalesmenResponse
     GetCustCategories: [CustCategory]
     GetLimitCustomer(input: GetLimitCustomerInput): GetLimitCustomerResponse
   }

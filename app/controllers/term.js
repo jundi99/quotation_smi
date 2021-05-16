@@ -15,16 +15,19 @@ const GetTerms = async (query) => {
     })
     .validateAsync(query)
 
-  const terms = await Term.find({
-    name: new RegExp(q, 'gi'),
-    ...(type ? { type } : {}),
-  })
-    .sort({ _id: 1 })
-    .skip(skip * limit)
-    .limit(limit)
-    .lean()
+  const [terms, total] = await Promise.all([
+    Term.find({
+      name: new RegExp(q, 'gi'),
+      ...(type ? { type } : {}),
+    })
+      .sort({ _id: 1 })
+      .skip(skip * limit)
+      .limit(limit)
+      .lean(),
+    Term.countDocuments(),
+  ])
 
-  return terms
+  return { terms, total }
 }
 
 const UpsertTerm = async (body) => {

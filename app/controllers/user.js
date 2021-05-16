@@ -185,13 +185,15 @@ const GetUsers = async (query) => {
     .limit(limit)
     .lean()
 
+  const countUser = await User.countDocuments()
+  const countCustomer = await Customer.countDocuments()
+  const total = countUser + countCustomer
+
   if (users.length < limit) {
     const filterNum = limit - users.length
     let totSkip = 0
 
     if (users.length === 0) {
-      const countUser = await User.countDocuments()
-
       totSkip = skip * limit - countUser
       totSkip = totSkip < 0 ? 0 : totSkip
     }
@@ -211,7 +213,7 @@ const GetUsers = async (query) => {
     users = [...users, ...customers]
   }
 
-  return users
+  return { users, total }
 }
 
 const ChangePassword = async (user, body) => {

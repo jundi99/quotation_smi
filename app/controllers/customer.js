@@ -164,18 +164,21 @@ const GetSalesmen = async (query) => {
     })
     .validateAsync(query)
 
-  const salesmen = await Salesman.find({
-    $or: [
-      { lastName: new RegExp(q, 'gi') },
-      { firstName: new RegExp(q, 'gi') },
-    ],
-  })
-    .sort({ salesmanId: 1 })
-    .skip(skip * limit)
-    .limit(limit)
-    .lean()
+  const [salesmen, total] = await Promise.all([
+    Salesman.find({
+      $or: [
+        { lastName: new RegExp(q, 'gi') },
+        { firstName: new RegExp(q, 'gi') },
+      ],
+    })
+      .sort({ salesmanId: 1 })
+      .skip(skip * limit)
+      .limit(limit)
+      .lean(),
+    Salesman.countDocuments(),
+  ])
 
-  return salesmen
+  return { salesmen, total }
 }
 
 const GetCustCategories = () => CustCategory.find({}).lean()
