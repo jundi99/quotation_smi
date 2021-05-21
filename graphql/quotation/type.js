@@ -72,6 +72,7 @@ module.exports = `
     price: Float
     amount: Float
     status: String
+    unit: String
   }
 
   input UpsertQuotationInput {

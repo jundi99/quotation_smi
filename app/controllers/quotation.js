@@ -87,55 +87,99 @@ const GetQuotations = async (query) => {
   return { quotations: newQuo, total }
 }
 
-const SendRecapEmailQuo = (customer, newValue) => {
-  let message =
-    `<html>
-      <head>
-        <style> table, th, td { border: 1px solid black; border-collapse: collapse; }
-        </style>
-      </head>
-      <body>` +
-    `Hai, ${customer.name} <br>` +
-    `Quotation anda berhasil dibuat dengan detail sebagai berikut: <br><br>` +
-    `No Quotation: <b>${newValue.quoNo}</b><br>` +
-    `Tanggal Quotation: <b>${moment(newValue.createdAt).format('LL')}</b><br>` +
-    `Pembayaran: <b>${newValue.payment}</b><br>` +
-    `Pengiriman: <b>${newValue.delivery}</b><br>` +
-    `Tanggal Pengiriman: <b>${moment(newValue.deliveryDate).format(
-      'LL',
-    )}</b><br>` +
-    `Note: <b>${newValue.note ? newValue.note : '-'} </b><br><br>` +
-    `<table style="width: 80%">` +
-    `<thead>` +
-    `<th>Kode Barang</th>` +
-    `<th>Nama Barang</th>` +
-    `<th>Qty/Pack</th>` +
-    `<th>Quantity</th>` +
-    `<th>Status</th>` +
-    `</thead>`
+const formatCurrency = (value) => {
+  return new Intl.NumberFormat().format(value)
+}
 
-  for (const {
-    itemNo,
-    itemName,
-    qtyPack,
-    quantity,
-    status,
-  } of newValue.detail) {
-    message +=
-      `<tr><td>${itemNo}</td>` +
-      `<td>${itemName}</td>` +
-      `<td>${qtyPack}</td>` +
-      `<td>${quantity}</td>` +
-      `<td>${status}</td>` +
-      `</tr>`
+const GenerateReport = async (customer, newData) => {
+  const ppn = customer.isTax ? newData.totalOrder * 0.1 : 0
+
+  const details = newData.detail.map((det) => {
+    det.price = formatCurrency(det.price)
+    det.amount = formatCurrency(det.amount)
+
+    return det
+  })
+  const data = {
+    salesQuoNo: newData.quoNo,
+    companyName: customer.name,
+    contactPerson: customer.contact ? customer.contact : customer.name,
+    phoneNumber: customer.phone,
+    email: customer.email,
+    reference: newData.reference,
+    date: moment(newData.quoDate).format('LL'),
+    preparedBy: newData.salesman.firstName,
+    validity: newData.validity,
+    delivery: newData.delivery,
+    payment: newData.payment,
+    tax: customer.isTax ? 'PPN' : '-',
+    details,
+    notes: newData.note,
+    subTotal: formatCurrency(newData.subTotal),
+    totalOrder: formatCurrency(newData.totalOrder),
+    ppn,
+    netTotal: formatCurrency(newData.subTotal),
+    grandTotal: formatCurrency(newData.totalOrder + ppn),
+  }
+  const html = await ejs.renderFile(
+    path.join(__dirname, '../utils/view_pdf/', 'design.ejs'),
+    data,
+    { async: true },
+  )
+
+  const options = {
+    width: '800px',
+    header: {
+      height: '0',
+    },
   }
 
-  message += '</table><br>Terima Kasih.</body></html>'
+  // pdf
+  //   .create(html, options)
+  //   .toFile(path.join(__dirname, '../utils/view_pdf/125.pdf'), (err, res) => {
+  //     if (err) {
+  //       log('error report', err)
+  //     }
+  //     log(res.filename)
+  //   })
+  return new Promise((resolve, reject) => {
+    pdf.create(html, options).toBuffer((err, buffer) => {
+      if (err) {
+        reject(err)
+        throw err
+      }
+
+      resolve(buffer)
+    })
+  })
+}
+
+const SendRecapEmailQuo = async (customer, newData) => {
+  const message = `<html><body>
+    Dear ${customer.name}, <br><br>
+
+    Terima kasih atas kesempatan yang telah Bpk/Ibu berikan untuk memberikan penawaran harga ini. <br>
+    Terlampir adalah penawaran dengan harga terbaik dari kami. <br>
+    Kami tunggu kabar baik ${customer.name} untuk Purchase Ordernya. <br>
+    Sekian yang dapat kami sampaikan. <br><br>
+    
+    Terima kasih. <br><br>
+     
+    Regards, <br>
+    ${newData.salesman.firstName} 
+    </body></html>`
+
   const mailOptions = {
     from: 'noreply@smi.com',
     to: customer.email,
-    subject: `Quotation No. ${newValue.quoNo} berhasil dibuat.`,
+    subject: `Quotation No. ${newData.quoNo}`,
     html: message,
+    attachments: [
+      {
+        filename: `${newData.quoNo}.pdf`,
+        content: await GenerateReport(customer, newData),
+      },
+    ],
   }
 
   transporter.sendMail(mailOptions, (error, info) => {
@@ -147,34 +191,32 @@ const SendRecapEmailQuo = (customer, newValue) => {
   })
 }
 
-const SendEmailReminder = (customer, newValue) => {
-  let message =
-    `<html>
+const SendEmailReminder = (customer, newData) => {
+  const ppn = customer.isTax ? newData.totalOrder * 0.1 : 0
+  let message = `<html>
     <head>
       <style> table, th, td { border: 1px solid black; border-collapse: collapse; }
       </style>
     </head>
-    <body>` +
-    `Halo, ${customer.name}<br>` +
-    `Kami mau mengingatkan quotation anda akan kadalursa <b>4 hari</b> lagi, ` +
-    `segera selesaikan quotationnya sebelum kadaluarsa otomatis<br>` +
-    `Berikut detail quotation anda: <br><br>` +
-    `No Quotation: <b>${newValue.quoNo}</b><br>` +
-    `Tanggal Quotation: <b>${moment(newValue.createdAt).format('LL')}</b><br>` +
-    `Pembayaran: <b>${newValue.payment}</b><br>` +
-    `Pengiriman: <b>${newValue.delivery}</b><br>` +
-    `Tanggal Pengiriman: <b>${moment(newValue.deliveryDate).format(
-      'LL',
-    )}</b><br>` +
-    `Note: <b>${newValue.note ? newValue.note : '-'} </b><br><br>` +
-    `<table style="width: 80%">` +
-    `<thead>` +
-    `<th>Kode Barang</th>` +
-    `<th>Nama Barang</th>` +
-    `<th>Qty/Pack</th>` +
-    `<th>Quantity</th>` +
-    `<th>Status</th>` +
-    `</thead>`
+    <body>
+    Dear ${customer.name}<br>
+    Kami ingin mengingatkan kembali untuk Quotation Bpk/Ibu akan kadaluarsa 3 hari lagi, <br>
+    jika masih berkenan segera lakukan penyelesaian sebelum kadaluarsa secara otomatis. <br>
+    Dengan detail quotation sbb: <br><br>
+    No Quotation: <b>${newData.quoNo}</b><br>
+    Tanggal Quotation: <b>${moment(newData.createdAt).format('LL')}</b><br>
+    Pembayaran: <b>${newData.payment}</b><br>
+    Pengiriman: <b>${newData.delivery}</b><br>
+    Tanggal Pengiriman: <b>${moment(newData.deliveryDate).format('LL')}</b><br>
+    Note: <b>${newData.note ? newData.note : '-'} </b><br><br>
+    <table style="width: 80%">
+    <thead>
+    <th>Kode Barang</th>
+    <th>Nama Barang</th>
+    <th>Qty/Pack</th>
+    <th>Quantity</th>
+    <th>Status</th>
+    </thead>`
 
   for (const {
     itemNo,
@@ -182,21 +224,28 @@ const SendEmailReminder = (customer, newValue) => {
     qtyPack,
     quantity,
     status,
-  } of newValue.detail) {
-    message +=
-      `<tr><td>${itemNo}</td>` +
-      `<td>${itemName}</td>` +
-      `<td>${qtyPack}</td>` +
-      `<td>${quantity}</td>` +
-      `<td>${status}</td>` +
-      `</tr>`
+  } of newData.detail) {
+    message += `<tr><td>${itemNo}</td>
+      <td>${itemName}</td>
+      <td>${qtyPack}</td>
+      <td>${quantity}</td>
+      <td>${status}</td>
+      </tr>`
   }
 
-  message += '</table><br>Terima Kasih.</body></html>'
+  message += `</table>
+  Sub Total: <b>${formatCurrency(newData.subTotal)} </b><br>
+  Nett Total: <b>${formatCurrency(newData.subTotal)} </b><br>   
+  PPN: <b>${ppn} </b><br>
+  Grand Total: <b>${formatCurrency(newData.totalOrder + ppn)} </b>
+  <br><br>Terima Kasih.<br><br>
+  Regards, <br>
+  ${newData.salesman.firstName}
+  </body></html>`
   const mailOptions = {
     from: 'noreply@smi.com',
     to: customer.email,
-    subject: `Quotation anda No. ${newValue.quoNo} akan kadaluarsa 4 hari lagi!`,
+    subject: `Quotation anda No. ${newData.quoNo} akan kadaluarsa 3 hari lagi!`,
     html: message,
   }
 
@@ -206,7 +255,7 @@ const SendEmailReminder = (customer, newValue) => {
     } else {
       log(`Email to ${customer.email} sent: ${info.response}`)
       await Quotation.findOneAndUpdate(
-        { quoNo: newValue.quoNo },
+        { quoNo: newData.quoNo },
         { isRemindExpire: true },
       )
     }
@@ -256,6 +305,7 @@ const UpsertQuotation = async (body) => {
                 price: joi.number().required(),
                 amount: joi.number().required(),
                 status: joi.string().required(),
+                unit: joi.string().required(),
               }),
             )
             .required(),
@@ -281,7 +331,10 @@ const UpsertQuotation = async (body) => {
       newData.save()
     } else {
       body.quoNo = await runningQuoNo()
-      newData = await new Quotation(body).save()
+      await new Quotation(body).save()
+      newData = await Quotation.findOne({ quoNo: body.quoNo })
+        .deepPopulate(['salesman'])
+        .lean()
       const customer = await Customer.findOne({
         personNo: body.personNo,
       }).lean()
@@ -356,6 +409,15 @@ const GetDeliveryOption = () => {
 const NotifExpireQuotation = async () => {
   const quoAlmostExpires = await Quotation.aggregate([
     {
+      $lookup: {
+        from: 'salesmen',
+        localField: 'salesman',
+        foreignField: '_id',
+        as: 'salesman',
+      },
+    },
+    { $unwind: '$salesman' },
+    {
       $project: {
         name: 1,
         quoNo: 1,
@@ -370,6 +432,9 @@ const NotifExpireQuotation = async () => {
         isRemindExpire: 1,
         reference: 1,
         validity: 1,
+        salesman: 1,
+        subTotal: 1,
+        totalOrder: 1,
         daySince: {
           $trunc: {
             $divide: [
@@ -430,53 +495,6 @@ const CheckQuotationExpired = async () => {
   )
 
   return Promise.all(doPromises)
-}
-
-const GenerateReport = async () => {
-  const data = {
-    // invoiceNumber: order.invoiceNumber,
-    // updatedAt: formatDate(order.updatedAt, 'DD MMMM YYYY'),
-    // senderName: order.cart.senderName,
-    // products: combineProducts,
-    // shippingPrice: formatNumber(order.cart.price.shipping),
-    // totalPrice: formatNumber(order.totalPriceBuyerInvoice),
-    // receiverName: address.receiverName,
-    // receiverAddress: `${address.receiverAddress}, ${address.village.name}, ${address.district.name}, ${address.regency.name}, ${address.province.name}, ${address.village.postalCode}`,
-    // phoneNumber: address.phoneNumber,
-  }
-  const html = await ejs.renderFile(
-    path.join(__dirname, '../utils/view_pdf/', 'design.ejs'),
-    data,
-    { async: true },
-  )
-
-  const options = {
-    // format: 'A4', // allowed units: A3, A4, A5, Legal, Letter, Tabloid
-    // orientation: 'portrait', // portrait or landscape
-    width: '800px',
-    header: {
-      height: '0',
-    },
-  }
-
-  pdf
-    .create(html, options)
-    .toFile(path.join(__dirname, '../utils/view_pdf/124.pdf'), (err, res) => {
-      if (err) {
-        log('error report', err)
-      }
-      log(res.filename)
-    })
-  // pdf.create(html, options).toBuffer((err, buffer) => {
-  //   if (err) {
-  //     throw err
-  //   }
-
-  //   return res.json({
-  //     docBase64: buffer.toString('base64'),
-  //     fileName: `${123}.pdf`,
-  //   })
-  // })
 }
 
 const BuyItemQuoAgain = async (quoNo) => {

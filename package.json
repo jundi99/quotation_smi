@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node index.js",
+    "start": "nodemon node index.js",
     "reinstall": "rm -rf node_modules package-lock.json && npm i",
     "codelint": "npx eslint -f table --fix .",
     "checklint": "npx eslint -f table .",
@@ -58,6 +58,7 @@
   "devDependencies": {
     "eslint": "^7.11.0",
     "husky": "^4.3.0",
+    "nodemon": "^2.0.7",
     "prettier": "2.1.2"
   }
 }

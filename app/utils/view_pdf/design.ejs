@@ -109,41 +109,53 @@
         <thead>
           <tr>
             <th>Sales Quotation No.</th>
-            <td>: NS/SMI/0321/3945</td>
+            <td>: <%= salesQuoNo %>
+            </td>
             <th>Date</th>
-            <td>: 23-Mar-2021</td>
+            <td>: <%= date %>
+            </td>
           </tr>
         </thead>
         <tbody style="padding-top: 40px;">
           <tr>
             <th>Company Name</th>
-            <td>: PT. Samindo Jaya Sentosa</td>
+            <td>: <%= companyName %>
+            </td>
             <th id="right-content">Prepared by</th>
-            <td>: Novita</td>
+            <td>: <%= preparedBy %>
+            </td>
           </tr>
           <tr>
             <th>Contact Person</th>
-            <td>: Mr Jody</td>
+            <td>: <%= contactPerson %>
+            </td>
             <th id="right-content">Validity</th>
-            <td>: 5 days</td>
+            <td>: <%= validity %>
+            </td>
           </tr>
           <tr>
             <th>Phone Number</th>
-            <td>: 021-54313331</td>
+            <td>: <%= phoneNumber %>
+            </td>
             <th id="right-content">Delivery</th>
-            <td>: Franco Jakarta</td>
+            <td>: <%= delivery %>
+            </td>
           </tr>
           <tr>
             <th>Email</th>
-            <td>: purchasing@samindo.co.id</td>
+            <td>: <%= email %>
+            </td>
             <th id="right-content">Payment</th>
-            <td>: DP 30% balance transfer before delivery</td>
+            <td>: <%= payment %>
+            </td>
           </tr>
           <tr>
             <th>Reference</th>
-            <td>: Via Email</td>
+            <td>: <%= reference %>
+            </td>
             <th id="right-content">Tax</th>
-            <td>: PPN</td>
+            <td>: <%= tax %>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -159,181 +171,99 @@
           <th value="7">Total Price IDR</th>
           <th value="8">Availability</th>
         </tr>
-        <tr>
-          <td>1</td>
-          <td>A1500001166</td>
-          <td>TK4S-R4CN</td>
-          <td>1</td>
-          <td>Pc</td>
-          <td>757,000</td>
-          <td>757,000</td>
-          <td>Indent 6-8 weeks</td>
-        </tr>
-        <tr>
-          <td>2</td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-        </tr>
-        <tr>
-          <td>3</td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-        </tr>
-        <tr>
-          <td>4</td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-        </tr>
-        <tr>
-          <td>5</td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-        </tr>
-        <tr>
-          <td>6</td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-        </tr>
-        <tr>
-          <td>7</td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-        </tr>
-        <tr>
-          <td>8</td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-        </tr>
-        <tr>
-          <td>9</td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-        </tr>
-        <tr>
-          <td>10</td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-        </tr>
-        <tr>
-          <td>11</td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-        </tr>
-        <tr>
-          <td>12</td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-        </tr>
-        <tr>
-          <td class="hide-cell"></td>
-          <td class="hide-cell"></td>
-          <td class="hide-cell"></td>
-          <td class="hide-cell"></td>
-          <td class="hide-cell-sub"></td>
-          <th>Sub Total</th>
-          <th>757,000</th>
-          <td class="hide-cell"></td>
-        </tr>
-        <tr>
-          <td class="hide-cell"></td>
-          <td class="hide-cell"></td>
-          <td class="hide-cell"></td>
-          <td class="hide-cell"></td>
-          <td class="hide-cell-sub"></td>
-          <th>Discount</th>
-          <th></th>
-          <td class="hide-cell"></td>
-        </tr>
-        <tr>
-          <td class="hide-cell"></td>
-          <td class="hide-cell"></td>
-          <td class="hide-cell"></td>
-          <td class="hide-cell"></td>
-          <td class="hide-cell-sub"></td>
-          <th>Nett Total</th>
-          <th>757,000</th>
-          <td class="hide-cell"></td>
-        </tr>
-        <tr>
-          <td class="hide-cell"></td>
-          <td class="hide-cell"></td>
-          <td class="hide-cell"></td>
-          <td class="hide-cell"></td>
-          <td class="hide-cell-sub"></td>
-          <th>PPN</th>
-          <th>75,700</th>
-          <td class="hide-cell"></td>
-        </tr>
-        <tr>
-          <td class="hide-cell"></td>
-          <td class="hide-cell"></td>
-          <td class="hide-cell"></td>
-          <td class="hide-cell"></td>
-          <td class="hide-cell-sub"></td>
-          <th>Grand Total</th>
-          <th>832,700</th>
-          <td class="hide-cell"></td>
-        </tr>
+        <% details.forEach((detail, idx)=> {%>
+          <tr>
+            <td>
+              <%= idx + 1 %>
+            </td>
+            <td>
+              <%= detail.itemNo %>
+            </td>
+            <td>
+              <%= detail.itemName %>
+            </td>
+            <td>
+              <%= detail.quantity %>
+            </td>
+            <td>
+              <%= detail.unit %>
+            </td>
+            <td>
+              <%= detail.price %>
+            </td>
+            <td>
+              <%= detail.amount %>
+            </td>
+            <td>
+              <%= detail.status %>
+            </td>
+          </tr>
+          <% });%>
+
+            <tr>
+              <td class="hide-cell"></td>
+              <td class="hide-cell"></td>
+              <td class="hide-cell"></td>
+              <td class="hide-cell"></td>
+              <td class="hide-cell-sub"></td>
+              <th>Sub Total</th>
+              <th>
+                <%= subTotal %>
+              </th>
+              <td class="hide-cell"></td>
+            </tr>
+            <tr>
+              <td class="hide-cell"></td>
+              <td class="hide-cell"></td>
+              <td class="hide-cell"></td>
+              <td class="hide-cell"></td>
+              <td class="hide-cell-sub"></td>
+              <th>Discount</th>
+              <th></th>
+              <td class="hide-cell"></td>
+            </tr>
+            <tr>
+              <td class="hide-cell"></td>
+              <td class="hide-cell"></td>
+              <td class="hide-cell"></td>
+              <td class="hide-cell"></td>
+              <td class="hide-cell-sub"></td>
+              <th>Nett Total</th>
+              <th>
+                <%= netTotal %>
+              </th>
+              <td class="hide-cell"></td>
+            </tr>
+            <tr>
+              <td class="hide-cell"></td>
+              <td class="hide-cell"></td>
+              <td class="hide-cell"></td>
+              <td class="hide-cell"></td>
+              <td class="hide-cell-sub"></td>
+              <th>PPN</th>
+              <th>
+                <%= ppn %>
+              </th>
+              <td class="hide-cell"></td>
+            </tr>
+            <tr>
+              <td class="hide-cell"></td>
+              <td class="hide-cell"></td>
+              <td class="hide-cell"></td>
+              <td class="hide-cell"></td>
+              <td class="hide-cell-sub"></td>
+              <th>Grand Total</th>
+              <th>
+                <%= grandTotal %>
+              </th>
+              <td class="hide-cell"></td>
+            </tr>
       </table>
 
       <table class="table-note">
         <tr>
-          <th>Notes or Special Comment:</th>
+          <th>Notes or Special Comment: <%= notes %>
+          </th>
         </tr>
         <tr>
           <td> </td>
@@ -350,7 +280,7 @@
         <b>Ps: All sales are final (Barang yang sudah dibeli tidak dapat ditukar maupun dikembalikan)</b>
         <br><br>
         Warm Regards,<br>
-        Novita
+        <%= preparedBy %>
       </div>
     </div>
     <img
