@@ -14,7 +14,7 @@ const {
 const {
   StatusQuo: { SENT, CLOSED },
 } = require('../constants')
-const { log, time, timeEnd } = console
+const { log, time, timeEnd, warn } = console
 const _ = require('lodash')
 const asyncRedis = require('async-redis')
 const redis = asyncRedis.createClient(REDIS_PORT, REDIS_URI)
@@ -245,37 +245,50 @@ const proceedAsyncItemFina = async (opt, user, rKey) => {
 }
 
 const SyncMasterItem = async (opt, cache = true, user) => {
-  const rKey = `syncItem:${user.userName}`
+  try {
+    const rKey = `syncItem:${user.userName}`
 
-  if (cache === false) {
-    redis.del(rKey)
-  }
-  const val = await redis.get(rKey)
-  const rVal = JSON.parse(val)
-  const defaultTotal = {
-    total: 0,
-    newData: 0,
-    newUpdateStock: 0,
-    progress: 0,
-  }
+    if (cache === false) {
+      redis.del(rKey)
+    }
+    const val = await redis.get(rKey)
+    const rVal = JSON.parse(val)
+    const defaultTotal = {
+      total: 0,
+      newData: 0,
+      newUpdateStock: 0,
+      progress: 0,
+    }
 
-  if (rVal) {
-    return rVal
-  }
+    if (rVal) {
+      return rVal
+    }
 
-  if (cache || rVal === null) {
-    proceedAsyncItemFina(opt, user, rKey)
-    await redis.set(
+    if (cache || rVal === null) {
+      proceedAsyncItemFina(opt, user, rKey)
+      await redis.set(
+        rKey,
+        JSON.stringify({ status: 'processing', ...defaultTotal }),
+        'EX',
+        1200,
+      )
+    }
+
+    return {
+      status: 'processing',
+      ...defaultTotal,
+    }
+  } catch (error) {
+    warn('error proceedAsyncItemFina:', error)
+
+return redis.set(
       rKey,
-      JSON.stringify({ status: 'processing', ...defaultTotal }),
+      JSON.stringify({
+        status: 'failed',
+      }),
       'EX',
-      1200,
+      300,
     )
-  }
-
-  return {
-    status: 'processing',
-    ...defaultTotal,
   }
 }
 
