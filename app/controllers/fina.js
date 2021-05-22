@@ -281,7 +281,7 @@ const SyncMasterItem = async (opt, cache = true, user) => {
   } catch (error) {
     warn('error proceedAsyncItemFina:', error)
 
-return redis.set(
+    return redis.set(
       rKey,
       JSON.stringify({
         status: 'failed',
