@@ -5,11 +5,11 @@ const StatusMessage = {
 }
 
 const StatusQuo = {
+  QUEUE: 'Queue',
+  PROCESSED: 'Processed',
   SENT: 'Sent',
   DELIVERED: 'Delivered',
-  QUEUE: 'Queue',
   CLOSED: 'Closed',
-  PROCESSED: 'Processed',
 }
 
 const FAIL_SYNC_SERVER = 'Gagal sync ke server Fina'

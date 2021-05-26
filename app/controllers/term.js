@@ -9,8 +9,8 @@ const GetTerms = async (query) => {
   const { skip, limit, q, type } = await joi
     .object({
       q: joi.string().optional(),
-      skip: joi.number().min(0).max(1000).default(0),
-      limit: joi.number().min(1).max(200).default(5),
+      skip: joi.number().min(0).default(0),
+      limit: joi.number().min(1).default(25),
       type: joi.string(),
     })
     .validateAsync(query)

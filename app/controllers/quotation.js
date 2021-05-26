@@ -7,7 +7,7 @@ const { log } = console
 const _ = require('lodash')
 const moment = require('moment')
 const {
-  StatusQuo: { QUEUE, PROCESSED, DELIVERED, SENT, CLOSED },
+  StatusQuo: { QUEUE, DELIVERED, SENT, CLOSED },
 } = require('../constants')
 const StandardError = require('../../utils/standard_error')
 const numeral = require('numeral')
@@ -16,7 +16,6 @@ const pdf = require('html-pdf')
 const path = require('path')
 
 joi.objectId = require('joi-objectid')(joi)
-
 moment.locale('id')
 joi.objectId = require('joi-objectid')(joi)
 const nodemailer = require('nodemailer')
@@ -46,29 +45,30 @@ const GetQuotations = async (query) => {
       dateFrom: joi.string().optional(),
       dateTo: joi.string().optional(),
       status: joi.string().optional(),
-      skip: joi.number().min(0).max(1000).default(0),
-      limit: joi.number().min(1).max(200).default(5),
+      skip: joi.number().min(0).default(0),
+      limit: joi.number().min(1).default(5),
       personNo: joi.string().optional(),
       salesman: joi.objectId().optional(),
     })
     .validateAsync(query)
+  const filterQuery = {
+    ...(dateFrom && dateTo
+      ? { createdAt: { $gte: dateFrom, $lte: dateTo } }
+      : {}),
+    ...(personNo ? { personNo } : {}),
+    ...(salesman ? { salesman } : {}),
+    ...(status ? { status } : {}),
+    ...(itemNo ? { 'detail.itemNo': new RegExp(itemNo, 'gi') } : {}),
+    ...(itemName ? { 'detail.itemName': new RegExp(itemName, 'gi') } : {}),
+  }
   const [quotations, total] = await Promise.all([
-    Quotation.find({
-      ...(dateFrom && dateTo
-        ? { createdAt: { $gte: dateFrom, $lte: dateTo } }
-        : {}),
-      ...(personNo ? { personNo } : {}),
-      ...(salesman ? { salesman } : {}),
-      ...(status ? { status } : {}),
-      ...(itemNo ? { 'detail.itemNo': new RegExp(itemNo, 'gi') } : {}),
-      ...(itemName ? { 'detail.itemName': new RegExp(itemName, 'gi') } : {}),
-    })
+    Quotation.find(filterQuery)
       .sort({ _id: -1 })
       .skip(skip * limit)
       .limit(limit)
       .deepPopulate(['salesman'])
       .lean(),
-    Quotation.countDocuments(),
+    Quotation.countDocuments(filterQuery),
   ])
 
   const newQuo = await Promise.all(
@@ -93,10 +93,12 @@ const formatCurrency = (value) => {
 
 const GenerateReport = async (customer, newData) => {
   const ppn = customer.isTax ? newData.totalOrder * 0.1 : 0
+  let details = _.cloneDeep(newData)
 
-  const details = newData.detail.map((det) => {
-    det.price = formatCurrency(det.price)
-    det.amount = formatCurrency(det.amount)
+  details = details.detail.map((det) => {
+    det.test = 1
+    det.price = formatCurrency(det.price || 0)
+    det.amount = formatCurrency(det.amount || 0)
 
     return det
   })
@@ -117,7 +119,7 @@ const GenerateReport = async (customer, newData) => {
     notes: newData.note,
     subTotal: formatCurrency(newData.subTotal),
     totalOrder: formatCurrency(newData.totalOrder),
-    ppn,
+    ppn: formatCurrency(ppn),
     netTotal: formatCurrency(newData.subTotal),
     grandTotal: formatCurrency(newData.totalOrder + ppn),
   }
@@ -324,7 +326,7 @@ const UpsertQuotation = async (body) => {
     let newData = await Quotation.findOne({ quoNo: body.quoNo })
 
     if (newData) {
-      if (newData.status === PROCESSED || newData.status === SENT) {
+      if (newData.status !== SENT) {
         throw new StandardError('Data sudah di proses, tidak bisa diubah')
       }
       newData = _.merge(newData, body)
@@ -347,7 +349,7 @@ const UpsertQuotation = async (body) => {
     return newData
   } catch (error) {
     log('UpsertQuotation:', error)
-    throw new StandardError('Gagal menyimpan data quotation')
+    throw error
   }
 }
 
@@ -555,10 +557,10 @@ const BuyItemQuoAgain = async (quoNo) => {
   items = items.map((item) => {
     const pricefromContract = allPriceContracts
       ? allPriceContracts
-          .filter((pc) => pc.itemNo === item.itemNo)
-          .sort((a, b) => {
-            return a.lessQty ? a.lessQty - b.lessQty : 0 // asc
-          })
+        .filter((pc) => pc.itemNo === item.itemNo)
+        .sort((a, b) => {
+          return a.lessQty ? a.lessQty - b.lessQty : 0 // asc
+        })
       : false
 
     if (pricefromContract.length) {

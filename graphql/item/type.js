@@ -88,6 +88,7 @@ module.exports = `
     price: Float
     qtyPack: Float
     priceContracts: [priceContractDetail]
+    unit: String
   }
 
   input GetItemsQuoInput {

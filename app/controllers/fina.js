@@ -448,8 +448,8 @@ const GetItems = async (query, user) => {
       itemNo: joi.string().optional(),
       name: joi.string().optional(),
       priceType: joi.string().optional(),
-      skip: joi.number().min(0).max(1000).default(0),
-      limit: joi.number().min(1).max(200).default(20),
+      skip: joi.number().min(0).default(0),
+      limit: joi.number().min(1).default(25),
     })
     .validateAsync(query)
 

@@ -1,4 +1,5 @@
 module.exports.Salesman = `
+  _id: ID
   salesmanId: Int
   firstName: String
   lastName: String

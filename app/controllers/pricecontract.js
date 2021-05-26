@@ -9,8 +9,8 @@ const moment = require('moment')
 const GetPriceContracts = async (query) => {
   const { skip, limit } = await joi
     .object({
-      skip: joi.number().min(0).max(1000).default(0),
-      limit: joi.number().min(1).max(200).default(5),
+      skip: joi.number().min(0).default(0),
+      limit: joi.number().min(1).default(5),
     })
     .validateAsync(query)
   const [priceContracts, total] = await Promise.all([

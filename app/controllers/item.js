@@ -11,8 +11,8 @@ const GetItemCategories = async (query) => {
   const { skip, limit, q } = await joi
     .object({
       q: joi.string().optional(),
-      skip: joi.number().min(0).max(1000).default(0),
-      limit: joi.number().min(1).max(200).default(5),
+      skip: joi.number().min(0).default(0),
+      limit: joi.number().min(1).default(25),
     })
     .validateAsync(query)
 
@@ -33,8 +33,8 @@ const GetItemsQuo = async (query, user) => {
       itemNo: joi.string().optional(),
       personNo: joi.string().optional(),
       name: joi.string().optional(),
-      skip: joi.number().min(0).max(1000).default(0),
-      limit: joi.number().min(1).max(200).default(25),
+      skip: joi.number().min(0).default(0),
+      limit: joi.number().min(1).default(25),
     })
     .validateAsync(query)
 
