@@ -557,10 +557,10 @@ const BuyItemQuoAgain = async (quoNo) => {
   items = items.map((item) => {
     const pricefromContract = allPriceContracts
       ? allPriceContracts
-        .filter((pc) => pc.itemNo === item.itemNo)
-        .sort((a, b) => {
-          return a.lessQty ? a.lessQty - b.lessQty : 0 // asc
-        })
+          .filter((pc) => pc.itemNo === item.itemNo)
+          .sort((a, b) => {
+            return a.lessQty ? a.lessQty - b.lessQty : 0 // asc
+          })
       : false
 
     if (pricefromContract.length) {
