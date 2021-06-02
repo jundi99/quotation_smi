@@ -5,11 +5,11 @@ const StatusMessage = {
 }
 
 const StatusQuo = {
-  QUEUE: 'Queue',
-  PROCESSED: 'Processed',
-  SENT: 'Sent',
-  DELIVERED: 'Delivered',
-  CLOSED: 'Closed',
+  QUEUE: 'Queue', // assign when create new quotation
+  PROCESSED: 'Processed', // assign when SO in web already confirmed
+  SENT: 'Sent', // assign when fina already processed SO to SI, and status in FINA = 'Processed'
+  DELIVERED: 'Delivered', // assign when user press btn "sudah diterima"
+  CLOSED: 'Closed', // assign when fina closed the SO
 }
 
 const FAIL_SYNC_SERVER = 'Gagal sync ke server Fina'

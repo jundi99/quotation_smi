@@ -53,7 +53,12 @@ const GetQuotations = async (query) => {
     .validateAsync(query)
   const filterQuery = {
     ...(dateFrom && dateTo
-      ? { createdAt: { $gte: dateFrom, $lte: dateTo } }
+      ? {
+          deliveryDate: {
+            $gte: dateFrom,
+            $lte: new Date(dateTo).setHours(23, 59, 59, 999),
+          },
+        }
       : {}),
     ...(personNo ? { personNo } : {}),
     ...(salesman ? { salesman } : {}),
@@ -238,7 +243,7 @@ const SendEmailReminder = (customer, newData) => {
   message += `</table>
   Sub Total: <b>${formatCurrency(newData.subTotal)} </b><br>
   Nett Total: <b>${formatCurrency(newData.subTotal)} </b><br>   
-  PPN: <b>${ppn} </b><br>
+  PPN: <b>${formatCurrency(ppn)} </b><br>
   Grand Total: <b>${formatCurrency(newData.totalOrder + ppn)} </b>
   <br><br>Terima Kasih.<br><br>
   Regards, <br>
@@ -290,7 +295,7 @@ const UpsertQuotation = async (body) => {
       body = await joi
         .object({
           personNo: joi.string().required(),
-          quoNo: joi.string().optional(),
+          quoNo: joi.string().optional().allow(''),
           quoDate: joi.date().required(),
           deliveryDate: joi.date().required(),
           payment: joi.string().required(),
@@ -326,24 +331,25 @@ const UpsertQuotation = async (body) => {
     let newData = await Quotation.findOne({ quoNo: body.quoNo })
 
     if (newData) {
-      if (newData.status !== SENT) {
+      if (!newData.status.match(new RegExp(`^${QUEUE}$|^${SENT}$`))) {
         throw new StandardError('Data sudah di proses, tidak bisa diubah')
       }
       newData = _.merge(newData, body)
-      newData.save()
+      await newData.save()
     } else {
       body.quoNo = await runningQuoNo()
       await new Quotation(body).save()
-      newData = await Quotation.findOne({ quoNo: body.quoNo })
-        .deepPopulate(['salesman'])
-        .lean()
-      const customer = await Customer.findOne({
-        personNo: body.personNo,
-      }).lean()
+    }
 
-      if (customer && customer.email) {
-        SendRecapEmailQuo(customer, newData)
-      }
+    newData = await Quotation.findOne({ quoNo: body.quoNo })
+      .deepPopulate(['salesman'])
+      .lean()
+    const customer = await Customer.findOne({
+      personNo: body.personNo,
+    }).lean()
+
+    if (customer && customer.email) {
+      SendRecapEmailQuo(customer, newData)
     }
 
     return newData

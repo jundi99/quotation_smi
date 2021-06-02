@@ -5,6 +5,8 @@ const joi = require('joi')
 const StandardError = require('../../utils/standard_error')
 const _ = require('lodash')
 
+joi.objectId = require('joi-objectid')(joi)
+
 const GetTerms = async (query) => {
   const { skip, limit, q, type } = await joi
     .object({
@@ -38,17 +40,23 @@ const UpsertTerm = async (body) => {
         note: joi.string().optional(),
         type: joi.string(),
         isCreate: joi.boolean().default(true),
+        _id: joi.objectId().optional(),
       })
       .validateAsync(body)
     const { name, type } = body
-    let newData = await Term.findOne({
+    const isExist = await Term.findOne({
       $and: [{ name }, { type }],
+      ...(body.isCreate === false ? { _id: { $ne: body._id } } : {}),
     }) // don't lean this because used for save()
 
-    if (newData) {
-      if (body.isCreate) {
-        throw new StandardError('Data ini sudah ada')
-      }
+    if (isExist) {
+      throw new StandardError('Data ini sudah ada')
+    }
+
+    let newData = {}
+
+    if (!body.isCreate) {
+      newData = await Term.findOne({ _id: body._id })
       newData = _.merge(newData, body)
       newData.save()
     } else {

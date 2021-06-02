@@ -68,7 +68,7 @@ const UpsertCustomer = async (body) => {
     const userName = email ? email : name
 
     body.profile = {
-      fullName: userName,
+      fullName: name,
     }
 
     body.userName = userName
@@ -85,7 +85,15 @@ const UpsertCustomer = async (body) => {
 
     if (newData) {
       if (body.isCreate) {
-        throw new StandardError('PersonNo / Email sudah ada')
+        throw new StandardError('PersonNo/Email sudah terdaftar')
+      }
+      const isExist = await Customer.findOne({
+        personNo: { $ne: body.personNo },
+        email,
+      }).lean()
+
+      if (isExist) {
+        throw new StandardError(`Email sudah dipakai oleh user ${isExist.name}`)
       }
       newData = _.merge(newData, body)
       newData.save()
