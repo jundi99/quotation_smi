@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 const {
   SMIModels: { Quotation, Customer, Item, RunningNumber, PriceContract },
 } = require('../daos')
@@ -27,6 +28,8 @@ const transporter = nodemailer.createTransport({
   },
 })
 
+const ONE_DAY = 1000 * 60 * 60 * 24
+
 const GetQuotations = async (query) => {
   const {
     skip,
@@ -54,11 +57,11 @@ const GetQuotations = async (query) => {
   const filterQuery = {
     ...(dateFrom && dateTo
       ? {
-          deliveryDate: {
-            $gte: dateFrom,
-            $lte: new Date(dateTo).setHours(23, 59, 59, 999),
-          },
-        }
+        deliveryDate: {
+          $gte: dateFrom,
+          $lte: new Date(dateTo).setHours(23, 59, 59, 999),
+        },
+      }
       : {}),
     ...(personNo ? { personNo } : {}),
     ...(salesman ? { salesman } : {}),
@@ -387,33 +390,6 @@ const GetQuotation = async (body) => {
   return quotation
 }
 
-const GetDeliveryOption = () => {
-  const detailDelivery = [
-    {
-      name: 'Gosend',
-      cost: 10000,
-    },
-    {
-      name: 'GrabExpress',
-      cost: 20000,
-    },
-    {
-      name: 'JNE',
-      cost: 10000,
-    },
-    {
-      name: 'Ambil sendiri',
-      cost: 0,
-    },
-    {
-      name: 'Gratis Ongkir',
-      cost: 0,
-    },
-  ]
-
-  return detailDelivery
-}
-
 const NotifExpireQuotation = async () => {
   const quoAlmostExpires = await Quotation.aggregate([
     {
@@ -445,17 +421,14 @@ const NotifExpireQuotation = async () => {
         totalOrder: 1,
         daySince: {
           $trunc: {
-            $divide: [
-              { $subtract: [new Date(), '$createdAt'] },
-              1000 * 60 * 60 * 24,
-            ],
+            $divide: [{ $subtract: [new Date(), '$createdAt'] }, ONE_DAY],
           },
         },
       },
     },
     {
       $match: {
-        daySince: { $gte: 1 },
+        daySince: { $gte: 11 },
         status: { $ne: CLOSED },
         isRemindExpire: false,
       },
@@ -481,10 +454,7 @@ const CheckQuotationExpired = async () => {
       $project: {
         daySince: {
           $trunc: {
-            $divide: [
-              { $subtract: [new Date(), '$createdAt'] },
-              1000 * 60 * 60 * 24,
-            ],
+            $divide: [{ $subtract: [new Date(), '$createdAt'] }, ONE_DAY],
           },
         },
       },
@@ -563,10 +533,10 @@ const BuyItemQuoAgain = async (quoNo) => {
   items = items.map((item) => {
     const pricefromContract = allPriceContracts
       ? allPriceContracts
-          .filter((pc) => pc.itemNo === item.itemNo)
-          .sort((a, b) => {
-            return a.lessQty ? a.lessQty - b.lessQty : 0 // asc
-          })
+        .filter((pc) => pc.itemNo === item.itemNo)
+        .sort((a, b) => {
+          return a.lessQty ? a.lessQty - b.lessQty : 0 // asc
+        })
       : false
 
     if (pricefromContract.length) {
@@ -579,8 +549,20 @@ const BuyItemQuoAgain = async (quoNo) => {
       item.price = item.price ? item.price.level1 || 0 : 0
       item.qtyPack = 1
     }
-    item.availableStock =
-      item.stockSMI + item.stockSupplier > 20 ? '> 20' : '< 20'
+    const totalStock = item.stockSMI + item.stockSupplier
+
+    item.availableStock = totalStock > 20 ? '> 20' : '< 20'
+    item.quantity = quotation.detail.find(
+      (itm) => itm.itemNo === item.itemNo,
+    ).quantity
+
+    item.status = 'Ready'
+
+    if (item.quantity > item.stockSMI && item.quantity <= totalStock) {
+      item.status = 'H+1'
+    } else if (item.quantity > totalStock || totalStock === 0) {
+      item.status = 'Indent'
+    }
 
     return item
   })
@@ -593,7 +575,6 @@ module.exports = {
   GetQuotation,
   UpsertQuotation,
   DeleteQuotation,
-  GetDeliveryOption,
   CheckQuotationExpired,
   NotifExpireQuotation,
   BuyItemQuoAgain,

@@ -106,7 +106,6 @@ module.exports = `
   type Query {
     GetQuotations(input: GetQuotationsInput): GetQuotationsResponse
     GetQuotation(input: QuoIdInput): QuoList
-    GetDeliveryOption: [GetDeliveryCostResponse]
   }
 
   type DeleteQuotationResponse {

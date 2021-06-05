@@ -89,6 +89,8 @@ module.exports = `
     qtyPack: Float
     priceContracts: [priceContractDetail]
     unit: String
+    quantity: Float
+    status: String
   }
 
   input GetItemsQuoInput {
@@ -99,14 +101,23 @@ module.exports = `
     limit: Int
   }
   
-  input GetStatusItemInput {
+  input StatusItem {
     itemNo: String
-    quantity: Int
+    quantity: Int    
+  }
+
+  input GetStatusItemInput {
+    details: [StatusItem]
+  }
+
+  type StatusItemsResponse {
+    itemNo: String
+    status: String
   }
   type Query {
     GetItems(input: GetItemsInput): GetItemsResponse
     GetItemCategories(input: GetItemCategoriesInput): [ItemCategory]
     GetItemsQuo(input: GetItemsQuoInput): [ItemQuo]
-    GetStatusItem(input: GetStatusItemInput): String
+    GetStatusItem(input: GetStatusItemInput): [StatusItemsResponse]
   }
 `

@@ -126,24 +126,37 @@ const GetItemsQuo = async (query, user) => {
 }
 
 const GetStatusItem = async (body) => {
-  const { itemNo, quantity } = await joi
+  body = await joi
     .object({
-      itemNo: joi.string().required(),
-      quantity: joi.number().required(),
+      details: joi.array().items(
+        joi.object({
+          itemNo: joi.string().required(),
+          quantity: joi.number().required(),
+        }),
+      ),
     })
     .validateAsync(body)
 
-  const item = await Item.findOne({ itemNo }).lean()
-  const totalStock = item.stockSMI + item.stockSupplier
-  let status = 'Ready'
+  const items = body.details.map((item) => item.itemNo)
+  const detItem = await Item.find({ itemNo: { $in: items } }).lean()
 
-  if (quantity > item.stockSMI && quantity <= totalStock) {
-    status = 'H+1'
-  } else if (quantity > totalStock) {
-    status = 'Indent'
-  }
+  return detItem.map((item) => {
+    const totalStock = item.stockSMI + item.stockSupplier
+    let status = 'Ready'
+    const quantity = (() => {
+      const qtyItem = body.details.find((itm) => itm.itemNo === item.itemNo)
 
-  return status
+      return qtyItem ? qtyItem.quantity : 0
+    })()
+
+    if (quantity > item.stockSMI && quantity <= totalStock) {
+      status = 'H+1'
+    } else if (quantity > totalStock || totalStock === 0) {
+      status = 'Indent'
+    }
+
+    return { itemNo: item.itemNo, status }
+  })
 }
 
 const UpdateStockSupplierXls = async (fileName) => {

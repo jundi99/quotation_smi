@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 const { log, table } = console
 const {
   SMIModels: { Item },
@@ -108,9 +109,8 @@ const XLSPriceContract = (req, res, next) => {
         files.filetoupload.name,
       )
 
-      const newpath = `./public/file/${
-        fields ? nameFile : files.filetoupload.name
-      }`
+      const newpath = `./public/file/${fields ? nameFile : files.filetoupload.name
+        }`
 
       fs.rename(oldpath, newpath, (err) => {
         if (err) {
@@ -129,7 +129,7 @@ const XLSPriceContract = (req, res, next) => {
 
               if (isItemExist) {
                 const data = {
-                  itemNo: row[0],
+                  itemNo,
                   itemName: isItemExist.name,
                   unit: isItemExist.unit,
                   qtyPack: row[1],
@@ -147,7 +147,7 @@ const XLSPriceContract = (req, res, next) => {
 
             for (let index = 0; index < rows.length; index++) {
               const row = rows[index]
-              const itemNo = row[0]
+              const itemNo = String(row[0])
 
               doPromises.push(setDataItems(itemNo, row))
             }
@@ -155,6 +155,16 @@ const XLSPriceContract = (req, res, next) => {
             await Promise.all(doPromises)
             log(rows)
             table(rows)
+            listExists.sort((a, b) => {
+              if (a.itemNo > b.itemNo) {
+                return -1
+              }
+              if (b.itemNo > a.itemNo) {
+                return 1
+              }
+
+              return 0
+            })
 
             return res.json({ data: listExists, notExists })
           })
@@ -189,9 +199,8 @@ const AttachmentPO = (req, res, next) => {
       const oldPath = files.filetoupload.path
       const nameFile = getFormatFileName(fields.quoNo, files.filetoupload.name)
 
-      const newPath = `./public/file/${
-        fields ? nameFile : files.filetoupload.name
-      }`
+      const newPath = `./public/file/${fields ? nameFile : files.filetoupload.name
+        }`
 
       fs.rename(oldPath, newPath, (err) => {
         if (err) {
