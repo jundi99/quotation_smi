@@ -219,11 +219,11 @@ const proceedAsyncItemFina = async (opt, user, rKey) => {
         status: 'processing',
         total,
         newData: countTotalCreated,
-        newUpdateStock: countTotalUpdated,
+        updateData: countTotalUpdated,
         progress,
       }),
       'EX',
-      1200,
+      200,
     )
   }
 
@@ -236,11 +236,11 @@ const proceedAsyncItemFina = async (opt, user, rKey) => {
       status: 'completed',
       total,
       newData: countTotalCreated,
-      newUpdateStock: countTotalUpdated,
+      updateData: countTotalUpdated,
       progress: 100,
     }),
     'EX',
-    1200,
+    200,
   )
 }
 
@@ -256,7 +256,7 @@ const SyncMasterItem = async (opt, cache = true, user) => {
     const defaultTotal = {
       total: 0,
       newData: 0,
-      newUpdateStock: 0,
+      updateData: 0,
       progress: 0,
     }
 
@@ -270,7 +270,7 @@ const SyncMasterItem = async (opt, cache = true, user) => {
         rKey,
         JSON.stringify({ status: 'processing', ...defaultTotal }),
         'EX',
-        1200,
+        200,
       )
     }
 
@@ -329,12 +329,11 @@ const SyncMasterUser = async () => {
   }
 }
 
-const SyncMasterCustomer = async (user) => {
-  const token = JwtSign(user)
+const countTotCustomerFina = async (token) => {
   const dataFina = await fetch(
-    normalizeUrl(`${FINA_SMI_URI}/fina/sync-customer`),
+    normalizeUrl(`${FINA_SMI_URI}/fina/total-customer`),
     {
-      method: 'POST',
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `${token}`,
@@ -345,46 +344,207 @@ const SyncMasterCustomer = async (user) => {
   })
 
   if (dataFina.fail || dataFina.ok === false) {
+    log('Fail countTotCustomerFina:', dataFina)
+
     throw new Error(FAIL_SYNC_SERVER)
   }
-  const { data, total } = await dataFina.json()
-  const ids = data.map((fina) => fina.ID)
-  const existData = await Customer.find({ customerId: { $in: ids } })
-  const createNewCustomer = async (fina) => {
-    const newData = await NewCustomer(fina)
 
-    return new Customer(newData).save()
-  }
-  const updateCustomer = async (dataCust, fina) => {
-    const newData = await NewCustomer(fina)
+  const { total } = await dataFina.json()
 
-    dataCust = _.merge(dataCust, newData)
+  return total
+}
 
-    return dataCust.save()
-  }
-
-  const promiseCreate = [],
-    promiseUpdate = []
-
-  data.map((fina) => {
-    const dataCust = existData.find((data) => data.customerId === fina.ID)
-
-    if (dataCust) {
-      promiseUpdate.push(updateCustomer(dataCust, fina))
-    } else {
-      promiseCreate.push(createNewCustomer(fina))
-    }
-
-    return true
+const syncCustomerPerSection = async (body) => {
+  const { token, limit, lastId } = body
+  const dataFina = await fetch(
+    normalizeUrl(`${FINA_SMI_URI}/fina/sync-customer`),
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        limit,
+        lastId,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `${token}`,
+      },
+    },
+  ).catch((err) => {
+    return { fail: true, err }
   })
 
-  await Promise.all(promiseCreate)
-  await Promise.all(promiseUpdate)
+  if (dataFina.fail || dataFina.ok === false) {
+    log('Fail syncCustomerPerSection:', dataFina)
 
-  return {
-    total,
-    newData: promiseCreate.length,
-    message: SUCCESS,
+    throw new Error(FAIL_SYNC_SERVER)
+  }
+
+  const data = await dataFina.json()
+
+  return data
+}
+
+const proceedCustomerFina = async (data) => {
+  try {
+    const ids = data.map((fina) => fina.ID)
+    const existData = await Customer.find({ customerId: { $in: ids } }).lean()
+    const promiseCreate = []
+    const promiseUpdate = []
+    const updateCustomer = async (dataCust, fina) => {
+      const newData = await NewCustomer(fina)
+
+      return _.merge(dataCust, newData)
+    }
+
+    data.map((fina) => {
+      const dataCust = existData.find((data) => data.customerId === fina.ID)
+
+      if (dataCust) {
+        promiseUpdate.push(updateCustomer(dataCust, fina))
+      } else {
+        promiseCreate.push(NewCustomer(fina))
+      }
+
+      return true
+    })
+    if (promiseCreate.length) {
+      const bulkData = await Promise.all(promiseCreate)
+
+      await Customer.create(bulkData)
+    } else if (promiseUpdate.length) {
+      let bulkData = await Promise.all(promiseUpdate)
+
+      bulkData = bulkData.map((data) => {
+        return {
+          updateOne: {
+            filter: { _id: data._id },
+            update: data,
+          },
+        }
+      })
+
+      Customer.bulkWrite(bulkData)
+    }
+
+    return {
+      totalCreated: promiseCreate.length,
+      totalUpdated: promiseUpdate.length,
+    }
+  } catch (error) {
+    log('error db:', error)
+
+    throw error
+  }
+}
+
+const processAsyncCustomer = async (user, rKey) => {
+  const token = JwtSign(user, '1h')
+
+  const total = await countTotCustomerFina(token)
+  const limit = 1000
+
+  let getLastId = null
+  let countTotalUpdated = 0
+  let countTotalCreated = 0
+  let progress = 0
+  const percentage = 100 / Math.ceil(total / limit)
+
+  time()
+  for (let index = 0; index < Math.ceil(total / limit); index++) {
+    // eslint-disable-next-line no-await-in-loop
+    const { data, lastId } = await syncCustomerPerSection({
+      token,
+      limit,
+      lastId: getLastId,
+    })
+    // eslint-disable-next-line no-await-in-loop
+    const { totalUpdated, totalCreated } = await proceedCustomerFina(data)
+
+    countTotalUpdated += totalUpdated
+    countTotalCreated += totalCreated
+
+    getLastId = lastId
+    progress += percentage
+    log(
+      `lastId: ${getLastId} | countTotalCreated:${countTotalCreated} | countTotalUpdated:${countTotalUpdated}`,
+    )
+    // eslint-disable-next-line no-await-in-loop
+    await redis.set(
+      rKey,
+      JSON.stringify({
+        status: 'processing',
+        total,
+        newData: countTotalCreated,
+        updateData: countTotalUpdated,
+        progress,
+      }),
+      'EX',
+      200,
+    )
+  }
+
+  timeEnd()
+  log('DONE!')
+
+  await redis.set(
+    rKey,
+    JSON.stringify({
+      status: 'completed',
+      total,
+      newData: countTotalCreated,
+      updateData: countTotalUpdated,
+      progress: 100,
+    }),
+    'EX',
+    200,
+  )
+}
+
+const SyncMasterCustomer = async (user, cache = true) => {
+  try {
+    const rKey = `syncCustomer:${user.userName}`
+
+    if (cache === false) {
+      redis.del(rKey)
+    }
+    const val = await redis.get(rKey)
+    const rVal = JSON.parse(val)
+    const defaultTotal = {
+      total: 0,
+      newData: 0,
+      updateData: 0,
+      progress: 0,
+    }
+
+    if (rVal) {
+      return rVal
+    }
+
+    if (cache || rVal === null) {
+      processAsyncCustomer(user, rKey)
+      await redis.set(
+        rKey,
+        JSON.stringify({ status: 'processing', ...defaultTotal }),
+        'EX',
+        200,
+      )
+    }
+
+    return {
+      ...defaultTotal,
+      status: 'processing',
+    }
+  } catch (error) {
+    warn('error processAsyncCustomer:', error)
+
+    return redis.set(
+      rKey,
+      JSON.stringify({
+        status: 'failed',
+      }),
+      'EX',
+      300,
+    )
   }
 }
 

@@ -5,19 +5,19 @@ module.exports = `
     message: String
   }
 
-  type SyncItemResponse {
+  type SyncProgressResponse {
     total: Int
     newData: Int
-    newUpdateStock: Int
+    updateData: Int
     status: String
     progress: Float
   }
 
   type Mutation {
     SyncUser: SyncResponse
-    SyncItem(cache: Boolean): SyncItemResponse
+    SyncItem(cache: Boolean): SyncProgressResponse
     SyncItemCategory: SyncResponse
-    SyncCustomer: SyncResponse
+    SyncCustomer(cache: Boolean): SyncProgressResponse
     SyncSalesman: SyncResponse
   }
 `

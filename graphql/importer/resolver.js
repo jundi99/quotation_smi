@@ -43,10 +43,10 @@ const resolvers = {
 
       return fina.SyncMasterItemCategory(user)
     },
-    async SyncCustomer(_, args, { user }) {
+    async SyncCustomer(_, { cache }, { user }) {
       await ValidateUser(user)
 
-      return fina.SyncMasterCustomer(user)
+      return fina.SyncMasterCustomer(user, cache)
     },
     async SyncSalesman(_, args, { user }) {
       await ValidateUser(user)
