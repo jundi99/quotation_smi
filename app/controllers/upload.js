@@ -109,8 +109,9 @@ const XLSPriceContract = (req, res, next) => {
         files.filetoupload.name,
       )
 
-      const newpath = `./public/file/${fields ? nameFile : files.filetoupload.name
-        }`
+      const newpath = `./public/file/${
+        fields ? nameFile : files.filetoupload.name
+      }`
 
       fs.rename(oldpath, newpath, (err) => {
         if (err) {
@@ -199,8 +200,9 @@ const AttachmentPO = (req, res, next) => {
       const oldPath = files.filetoupload.path
       const nameFile = getFormatFileName(fields.quoNo, files.filetoupload.name)
 
-      const newPath = `./public/file/${fields ? nameFile : files.filetoupload.name
-        }`
+      const newPath = `./public/file/${
+        fields ? nameFile : files.filetoupload.name
+      }`
 
       fs.rename(oldPath, newPath, (err) => {
         if (err) {
