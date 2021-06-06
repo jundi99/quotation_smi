@@ -119,7 +119,10 @@ const NewUser = (user) => {
 
 const NewCustomer = async (customer) => {
   const salesman = customer.SALESMANID
-    ? await Salesman.findOne({ salesmanId: customer.SALESMANID }, { _id: 1 })
+    ? await Salesman.findOne(
+        { salesmanId: customer.SALESMANID },
+        { _id: 1 },
+      ).lean()
     : {}
   const userName = customer.EMAIL ? customer.EMAIL : customer.NAME
   const authorizeUser = {

@@ -13,12 +13,15 @@ const appRoutes = require('./app/routes')
 const app = express()
 const { ApolloServer } = require('apollo-server-express')
 const jwt = require('express-jwt')
-const { PORT, JWT_SECRET } = process.env
+const { PORT, JWT_SECRET, REDIS_URI, REDIS_PORT } = process.env
 const auth = jwt({
   secret: JWT_SECRET,
   credentialsRequired: false,
   algorithms: ['HS256'],
 })
+const kill = require('kill-port')
+const asyncRedis = require('async-redis')
+const redis = asyncRedis.createClient(REDIS_PORT, REDIS_URI)
 
 app.use(logger('dev'))
 app.use(express.json({ limit: '5mb' }))
@@ -40,7 +43,6 @@ app.get('/', (req, res) => {
     '<form action="upload/attachment-po" method="post" enctype="multipart/form-data">',
   )
   res.write('<input type="file" name="filetoupload"><br>')
-  // res.write('<input name="priceNo" value="123456">')
   res.write('<input name="quoNo" value="123456">')
   res.write('<input type="submit">')
   res.write('</form>')
@@ -67,43 +69,10 @@ const server = new ApolloServer({
 
     return { user }
   },
-  // context: ({ req, connection, res }) => {
-  //   if (connection) {
-  //     return connection.context
-  //   }
-
-  //   return {
-  //     req,
-  //     headers: req.headers,
-  //     res,
-  //   }
-  // },
   tracing: true,
   cacheControl: true,
   formatError: (error) => {
     try {
-      // const err = JSON.parse(error.message)
-
-      // const errorDetail = {
-      //   ...err,
-      //   locations: error.locations,
-      //   stack: error.stack,
-      //   path: error.path,
-      // }
-
-      // if (error && error.code) {
-      //   errorDetail.code = error.code
-      // }
-
-      // if (error && error.errCode) {
-      //   errorDetail.errCode = error.errCode
-      // }
-
-      // if (error && error.service) {
-      //   errorDetail.service = error.service
-      // }
-
-      // return errorDetail
       const oriError = error.originalError
       const errorDetail = {
         code: oriError.statusCode,
@@ -120,9 +89,17 @@ const server = new ApolloServer({
 
 server.applyMiddleware({ app })
 app.use(helmet()) // if turn on this graphql will stuck on loading screen
-app.listen(PORT || 3000, () => {
-  log(`The server started on port ${PORT}`)
-})
+
+kill(PORT, 'tcp')
+  .then((result) => {
+    log('Success kill port:', result)
+    redis.del('syncItem')
+    redis.del('syncCustomer')
+    app.listen(PORT || 3000, () => {
+      log(`The server started on port ${PORT}`)
+    })
+  })
+  .catch((err) => log('error kill port:', err))
 
 process.on('SIGINT', async () => {
   log('SIGINT signal received on ', new Date())

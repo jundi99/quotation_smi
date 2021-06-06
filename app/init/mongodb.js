@@ -39,7 +39,7 @@ const SMIDBConn = connect({
     keepAlive: 1,
     autoIndex: false,
     useFindAndModify: false,
-    poolSize: 100,
+    poolSize: 250,
   },
 })
 

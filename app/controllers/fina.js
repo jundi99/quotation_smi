@@ -140,7 +140,9 @@ const countTotItemFina = async (token) => {
 const proceedItemFina = async (data) => {
   try {
     const ids = data.map((fina) => fina.ITEMNO)
-    const dataItemQuo = await Item.find({ itemNo: { $in: ids } }).lean()
+    const dataItemQuo = await Item.findWithDeleted({
+      itemNo: { $in: ids },
+    }).lean()
     const promiseUpdate = []
     const promiseCreate = []
 
@@ -255,7 +257,7 @@ const proceedAsyncItemFina = async (opt, user, rKey) => {
 
 const SyncMasterItem = async (opt, cache = true, user) => {
   try {
-    const rKey = `syncItem:${user.userName}`
+    const rKey = `syncItem`
 
     if (cache === false) {
       redis.del(rKey)
@@ -396,7 +398,9 @@ const syncCustomerPerSection = async (body) => {
 const proceedCustomerFina = async (data) => {
   try {
     const ids = data.map((fina) => fina.ID)
-    const existData = await Customer.find({ customerId: { $in: ids } }).lean()
+    const existData = await Customer.findWithDeleted({
+      customerId: { $in: ids },
+    }).lean()
     const promiseCreate = []
     const promiseUpdate = []
     const updateCustomer = async (dataCust, fina) => {
@@ -450,7 +454,7 @@ const processAsyncCustomer = async (user, rKey) => {
   const token = JwtSign(user, '1h')
 
   const total = await countTotCustomerFina(token)
-  const limit = 1000
+  const limit = 500
 
   let getLastId = null
   let countTotalUpdated = 0
@@ -511,7 +515,7 @@ const processAsyncCustomer = async (user, rKey) => {
 
 const SyncMasterCustomer = async (user, cache = true) => {
   try {
-    const rKey = `syncCustomer:${user.userName}`
+    const rKey = `syncCustomer`
 
     if (cache === false) {
       redis.del(rKey)
