@@ -1,10 +1,19 @@
+/* eslint-disable max-lines-per-function */
 const { FINA_SMI_URI, REDIS_URI, REDIS_PORT } = process.env
 const fetch = require('node-fetch')
 const normalizeUrl = require('normalize-url')
 const { JwtSign } = require('../utils')
 const { NewItem, NewUser, NewCustomer } = require('../utils/helper')
 const {
-  SMIModels: { User, Item, ItemCategory, Customer, Salesman, Quotation },
+  SMIModels: {
+    User,
+    Item,
+    ItemCategory,
+    Customer,
+    Salesman,
+    Quotation,
+    PriceContract,
+  },
 } = require('../daos')
 const joi = require('joi')
 const {
@@ -613,11 +622,24 @@ const GetItems = async (query, user) => {
     })
     .validateAsync(query)
 
-  const queryItem = {
+  let queryItem = {
     ...(category ? { category } : {}),
     ...(itemNo ? { itemNo: new RegExp(itemNo, 'gi') } : {}),
     ...(name ? { name: new RegExp(name, 'gi') } : {}),
-    ...(priceType ? { priceType } : {}),
+  }
+
+  if (priceType) {
+    const [items] = await PriceContract.aggregate([
+      { $match: { deleted: false, priceType } },
+      { $project: { details: 1 } },
+      { $unwind: '$details' },
+      { $sort: { 'details.itemNo': 1 } },
+      { $group: { _id: '$details.itemNo' } },
+      { $group: { _id: null, items: { $push: '$_id' } } },
+    ])
+
+    // queryItem = { ...queryItem, ...(items ? { itemNo: { $in: items.items } } : {}) }
+    queryItem = { ...queryItem, itemNo: { $in: items ? items.items : [] } }
   }
 
   const items = await Item.find(queryItem)
@@ -658,7 +680,23 @@ const GetItems = async (query, user) => {
     differentData = Math.abs(sumData - itemCount)
   }
 
+  listPack = await PriceContract.aggregate([
+    { $match: { deleted: false } },
+    { $project: { details: 1 } },
+    { $unwind: '$details' },
+    { $sort: { 'details.itemNo': 1 } },
+    {
+      $group: {
+        _id: '$details.itemNo',
+        qtyPack: { $first: '$details.qtyPack' },
+      },
+    },
+  ])
+
   items.map((item) => {
+    const pack = listPack.find((value) => value._id === item.itemNo)
+
+    item.qtyPack = pack ? pack.qtyPack : 'NA'
     item.stockSMI = item.stockSMI ? item.stockSMI : 0
     item.stockSupplier = item.stockSupplier ? item.stockSupplier : 0
     item.totalStockReadySell = item.stockSMI + item.stockSupplier

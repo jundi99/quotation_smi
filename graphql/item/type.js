@@ -49,6 +49,7 @@ module.exports = `
     ${module.exports.Item}
     outstandingOrder: Float
     totalStockReadySell: Float
+    qtyPack: String
   }
 
   type GetItemsResponse {
