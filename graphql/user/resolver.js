@@ -65,7 +65,10 @@ const resolvers = {
     },
     async Login(_, { login, password }) {
       const user = await User.findOne({ userName: login })
-      const customer = await Customer.findOne({ userName: login })
+      const customer = await Customer.findOne({
+        userName: login,
+        isActive: true,
+      })
       let valid = null
       let validUser
 
@@ -76,9 +79,7 @@ const resolvers = {
         valid = await customer.comparePassword(password)
         validUser = customer
       } else {
-        throw new StandardError(
-          'User ini tidak ada. Harap pastikan untuk mengetik login yang benar.',
-        )
+        throw new StandardError('User tidak ditemukan.')
       }
 
       if (!valid) {

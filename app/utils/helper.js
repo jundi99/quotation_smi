@@ -131,7 +131,8 @@ const NewCustomer = async (customer) => {
   }
   const newData = {
     userName,
-    encryptedPassword: userName,
+    encryptedPassword:
+      '$2a$10$1YlsheoKFH5gQz.tECPPg.imL6enYbj1MyHoLntnQnXcwJYR1tUZ6', // 12345
     profile: {
       fullName: userName,
     },

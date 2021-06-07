@@ -10,6 +10,7 @@ module.exports.Quotation = `
   detail: [DetailQuotation]
   subTotal: Float
   totalOrder: Float
+  ppn: Float
   note: String
   attachmentPO: String
   isConfirm: Boolean
@@ -86,6 +87,7 @@ module.exports = `
     detail: [DetailQuotationInput]
     subTotal: Float
     totalOrder: Float
+    ppn: Float
     note: String
     status: StatusQuoSO
     deliveryStatus: String

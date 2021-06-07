@@ -642,7 +642,6 @@ const GetItems = async (query, user) => {
       { $group: { _id: null, items: { $push: '$_id' } } },
     ])
 
-    // queryItem = { ...queryItem, ...(items ? { itemNo: { $in: items.items } } : {}) }
     queryItem = { ...queryItem, itemNo: { $in: items ? items.items : [] } }
   }
 

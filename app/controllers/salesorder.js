@@ -11,10 +11,11 @@ const {
 const StandardError = require('../../utils/standard_error')
 const { log } = console
 const { EmailToDev } = require('../utils/helper')
+const { SendEmailProcessed } = require('./quotation')
 
 joi.objectId = require('joi-objectid')(joi)
 
-const CreateSO = async (salesOrder) => {
+const CreateSO = async (salesOrder, body) => {
   try {
     Reflect.deleteProperty(salesOrder, 'attachmentPO')
     const { personNo } = salesOrder
@@ -50,6 +51,9 @@ const CreateSO = async (salesOrder) => {
       await Customer.updateOne({ personNo }, { customerId: data.customerId })
     }
 
+    SendEmailProcessed(customer, salesOrder)
+    await Quotation.updateOne({ quoNo: salesOrder.quoNo }, body, { new: true })
+
     return { data, message: SUCCESS }
   } catch (error) {
     log('CreateSO:', error)
@@ -69,16 +73,12 @@ const UpdateSO = async (body) => {
     })
     .validateAsync(body)
 
-  const salesOrder = await Quotation.findOneAndUpdate(
-    { quoNo: body.quoNo },
-    body,
-    { new: true },
-  )
+  const salesOrder = await Quotation.findOne({ quoNo: body.quoNo })
     .populate('salesman')
     .lean()
 
   if (salesOrder) {
-    CreateSO(salesOrder)
+    CreateSO(salesOrder, body)
   }
 
   return salesOrder

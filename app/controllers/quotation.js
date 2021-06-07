@@ -57,11 +57,11 @@ const GetQuotations = async (query) => {
   const filterQuery = {
     ...(dateFrom && dateTo
       ? {
-          deliveryDate: {
-            $gte: dateFrom,
-            $lte: new Date(dateTo).setHours(23, 59, 59, 999),
-          },
-        }
+        deliveryDate: {
+          $gte: dateFrom,
+          $lte: new Date(dateTo).setHours(23, 59, 59, 999),
+        },
+      }
       : {}),
     ...(personNo ? { personNo } : {}),
     ...(salesman ? { salesman } : {}),
@@ -100,7 +100,6 @@ const formatCurrency = (value) => {
 }
 
 const GenerateReport = async (customer, newData) => {
-  const ppn = customer.isTax ? newData.totalOrder * 0.1 : 0
   let details = _.cloneDeep(newData)
 
   details = details.detail.map((det) => {
@@ -126,10 +125,9 @@ const GenerateReport = async (customer, newData) => {
     details,
     notes: newData.note,
     subTotal: formatCurrency(newData.subTotal),
-    totalOrder: formatCurrency(newData.totalOrder),
-    ppn: formatCurrency(ppn),
+    ppn: formatCurrency(newData.ppn),
     netTotal: formatCurrency(newData.subTotal),
-    grandTotal: formatCurrency(newData.totalOrder + ppn),
+    grandTotal: formatCurrency(newData.totalOrder),
   }
   const html = await ejs.renderFile(
     path.join(__dirname, '../utils/view_pdf/', 'design.ejs'),
@@ -161,6 +159,32 @@ const GenerateReport = async (customer, newData) => {
 
       resolve(buffer)
     })
+  })
+}
+
+const SendEmailProcessed = (customer, quotation) => {
+  const message = `<html>
+  Dear ${customer.name}<br>
+  Quotation anda sedang kami proses.
+  <br><br>Terima Kasih.<br><br>
+  Regards, <br>
+  ${quotation.salesman.firstName}
+  </html>`
+  const mailOptions = {
+    from: 'noreply@smi.com',
+    to: customer.email,
+    subject: `Quotation anda No. ${quotation.quoNo} sedang di proses`,
+    html: message,
+  }
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      log('Fail SendEmailProcessed:', error)
+    } else {
+      log(
+        `Email SendEmailProcessed to ${customer.email} sent: ${info.response}`,
+      )
+    }
   })
 }
 
@@ -202,7 +226,6 @@ const SendRecapEmailQuo = async (customer, newData) => {
 }
 
 const SendEmailReminder = (customer, newData) => {
-  const ppn = customer.isTax ? newData.totalOrder * 0.1 : 0
   let message = `<html>
     <head>
       <style> table, th, td { border: 1px solid black; border-collapse: collapse; }
@@ -246,8 +269,8 @@ const SendEmailReminder = (customer, newData) => {
   message += `</table>
   Sub Total: <b>${formatCurrency(newData.subTotal)} </b><br>
   Nett Total: <b>${formatCurrency(newData.subTotal)} </b><br>   
-  PPN: <b>${formatCurrency(ppn)} </b><br>
-  Grand Total: <b>${formatCurrency(newData.totalOrder + ppn)} </b>
+  PPN: <b>${formatCurrency(newData.ppn)} </b><br>
+  Grand Total: <b>${formatCurrency(newData.totalOrder)} </b>
   <br><br>Terima Kasih.<br><br>
   Regards, <br>
   ${newData.salesman.firstName}
@@ -321,6 +344,7 @@ const UpsertQuotation = async (body) => {
             .required(),
           subTotal: joi.number().required(),
           totalOrder: joi.number().required(),
+          ppn: joi.number().required(),
           note: joi.string().optional().allow(''),
           status: joi.string().default(QUEUE),
           deliveryStatus: joi.string().default('Belum Terkirim'),
@@ -533,10 +557,10 @@ const BuyItemQuoAgain = async (quoNo) => {
   items = items.map((item) => {
     const pricefromContract = allPriceContracts
       ? allPriceContracts
-          .filter((pc) => pc.itemNo === item.itemNo)
-          .sort((a, b) => {
-            return a.lessQty ? a.lessQty - b.lessQty : 0 // asc
-          })
+        .filter((pc) => pc.itemNo === item.itemNo)
+        .sort((a, b) => {
+          return a.lessQty ? a.lessQty - b.lessQty : 0 // asc
+        })
       : false
 
     if (pricefromContract.length) {
@@ -579,4 +603,5 @@ module.exports = {
   NotifExpireQuotation,
   BuyItemQuoAgain,
   GenerateReport,
+  SendEmailProcessed,
 }

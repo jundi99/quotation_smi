@@ -1,3 +1,5 @@
+/* eslint-disable max-lines-per-function */
+
 const {
   SMIModels: { Customer, CustCategory, Salesman },
 } = require('../daos')
@@ -44,6 +46,7 @@ const UpsertCustomer = async (body) => {
         .object({
           personNo: joi.string().required(),
           authorize: joi.object().optional(),
+          password: joi.string().optional().allow(''),
         })
         .validateAsync(body)
     } else {
@@ -64,7 +67,7 @@ const UpsertCustomer = async (body) => {
         .validateAsync(body)
     }
 
-    const { email, name } = body
+    const { email, name, password } = body
     const userName = email ? email : name
 
     body.profile = {
@@ -72,7 +75,10 @@ const UpsertCustomer = async (body) => {
     }
 
     body.userName = userName
-    body.encryptedPassword = userName
+    if (password) {
+      body.encryptedPassword = password
+    }
+
     body.category = body.idType
     const salesmanData = await Salesman.findOne({
       salesmanId: body.salesman,
@@ -87,14 +93,19 @@ const UpsertCustomer = async (body) => {
       if (body.isCreate) {
         throw new StandardError('PersonNo/Email sudah terdaftar')
       }
-      const isExist = await Customer.findOne({
-        personNo: { $ne: body.personNo },
-        email,
-      }).lean()
+      if (email) {
+        const isExist = await Customer.findOne({
+          personNo: { $ne: body.personNo },
+          email,
+        }).lean()
 
-      if (isExist) {
-        throw new StandardError(`Email sudah dipakai oleh user ${isExist.name}`)
+        if (isExist) {
+          throw new StandardError(
+            `Email sudah dipakai oleh user ${isExist.name}`,
+          )
+        }
       }
+
       newData = _.merge(newData, body)
       newData.save()
     } else {
