@@ -57,11 +57,11 @@ const GetQuotations = async (query) => {
   const filterQuery = {
     ...(dateFrom && dateTo
       ? {
-          deliveryDate: {
-            $gte: dateFrom,
-            $lte: new Date(dateTo).setHours(23, 59, 59, 999),
-          },
-        }
+        deliveryDate: {
+          $gte: dateFrom,
+          $lte: new Date(dateTo).setHours(23, 59, 59, 999),
+        },
+      }
       : {}),
     ...(personNo ? { personNo } : {}),
     ...(salesman ? { salesman } : {}),
@@ -164,7 +164,7 @@ const GenerateReport = async (customer, newData) => {
 
 const SendEmailProcessed = (customer, quotation) => {
   const message = `<html>
-  Dear ${customer.name}<br>
+  Dear Bpk/Ibu ${customer.name}<br>
   Quotation anda sedang kami proses.
   <br><br>Terima Kasih.<br><br>
   Regards, <br>
@@ -190,11 +190,11 @@ const SendEmailProcessed = (customer, quotation) => {
 
 const SendRecapEmailQuo = async (customer, newData) => {
   const message = `<html><body>
-    Dear ${customer.name}, <br><br>
+    Dear Bpk/Ibu ${customer.name}, <br><br>
 
     Terima kasih atas kesempatan yang telah Bpk/Ibu berikan untuk memberikan penawaran harga ini. <br>
     Terlampir adalah penawaran dengan harga terbaik dari kami. <br>
-    Kami tunggu kabar baik ${customer.name} untuk Purchase Ordernya. <br>
+    Kami tunggu kabar baik Bpk/Ibu ${customer.name} untuk Purchase Ordernya. <br>
     Sekian yang dapat kami sampaikan. <br><br>
     
     Terima kasih. <br><br>
@@ -232,7 +232,7 @@ const SendEmailReminder = (customer, newData) => {
       </style>
     </head>
     <body>
-    Dear ${customer.name}<br>
+    Dear Bpk/Ibu ${customer.name}<br>
     Kami ingin mengingatkan kembali untuk Quotation Bpk/Ibu akan kadaluarsa 3 hari lagi, <br>
     jika masih berkenan segera lakukan penyelesaian sebelum kadaluarsa secara otomatis. <br>
     Dengan detail quotation sbb: <br><br>
@@ -557,10 +557,10 @@ const BuyItemQuoAgain = async (quoNo) => {
   items = items.map((item) => {
     const pricefromContract = allPriceContracts
       ? allPriceContracts
-          .filter((pc) => pc.itemNo === item.itemNo)
-          .sort((a, b) => {
-            return a.lessQty ? a.lessQty - b.lessQty : 0 // asc
-          })
+        .filter((pc) => pc.itemNo === item.itemNo)
+        .sort((a, b) => {
+          return a.lessQty ? a.lessQty - b.lessQty : 0 // asc
+        })
       : false
 
     if (pricefromContract.length) {

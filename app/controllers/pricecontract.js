@@ -118,6 +118,9 @@ const UpsertPriceContract = async (body) => {
   })
 
   if (priceConNo && newData) {
+    if (body.personNos) {
+      newData.personNos = null
+    }
     newData = _.merge(newData, body)
     newData.details = null
     newData.details = details
