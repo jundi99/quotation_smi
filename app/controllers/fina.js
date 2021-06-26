@@ -5,15 +5,8 @@ const normalizeUrl = require('normalize-url')
 const { JwtSign } = require('../utils')
 const { NewItem, NewUser, NewCustomer } = require('../utils/helper')
 const {
-  SMIModels: {
-    User,
-    Item,
-    ItemCategory,
-    Customer,
-    Salesman,
-    Quotation,
-    PriceContract,
-  },
+  SMIModels: { User, Item, ItemCategory, Salesman, Quotation, PriceContract },
+  SMIModels2,
 } = require('../daos')
 const joi = require('joi')
 const {
@@ -140,7 +133,7 @@ const countTotItemFina = async (token) => {
 const proceedItemFina = async (data) => {
   try {
     const ids = data.map((fina) => fina.ITEMNO)
-    const dataItemQuo = await Item.findWithDeleted({
+    const dataItemQuo = await SMIModels2.Item.findWithDeleted({
       itemNo: { $in: ids },
     }).lean()
     const promiseUpdate = []
@@ -163,7 +156,7 @@ const proceedItemFina = async (data) => {
     if (promiseCreate.length) {
       const bulkData = await Promise.all(promiseCreate)
 
-      await Item.create(bulkData)
+      await SMIModels2.Item.create(bulkData)
     } else if (promiseUpdate.length) {
       let bulkData = await Promise.all(promiseUpdate)
 
@@ -176,7 +169,7 @@ const proceedItemFina = async (data) => {
         }
       })
 
-      Item.bulkWrite(bulkData)
+      SMIModels2.Item.bulkWrite(bulkData)
     }
 
     return {
@@ -191,68 +184,81 @@ const proceedItemFina = async (data) => {
 }
 
 const proceedAsyncItemFina = async (opt, user, rKey) => {
-  const token = JwtSign(user, '1h')
-  const total = await countTotItemFina(token)
-  const limit = 5000
+  try {
+    const token = JwtSign(user, '1h')
+    const total = await countTotItemFina(token)
+    const limit = 5000
 
-  let getLastId = null
-  let countTotalUpdated = 0
-  let countTotalCreated = 0
-  let progress = 0
-  const percentage = 100 / Math.ceil(total / limit)
-  const warehouseIds = await GetStockWarehouses()
+    let getLastId = null
+    let countTotalUpdated = 0
+    let countTotalCreated = 0
+    let progress = 0
+    const percentage = 100 / Math.ceil(total / limit)
+    const warehouseIds = await GetStockWarehouses()
 
-  time()
-  for (let index = 0; index < Math.ceil(total / limit); index++) {
-    // eslint-disable-next-line no-await-in-loop
-    const { data, lastId } = await syncItemPerSection({
-      opt,
-      token,
-      limit,
-      lastId: getLastId,
-      warehouseIds,
-    })
-    // eslint-disable-next-line no-await-in-loop
-    const { totalUpdated, totalCreated } = await proceedItemFina(data)
+    time()
+    for (let index = 0; index < Math.ceil(total / limit); index++) {
+      // eslint-disable-next-line no-await-in-loop
+      const { data, lastId } = await syncItemPerSection({
+        opt,
+        token,
+        limit,
+        lastId: getLastId,
+        warehouseIds,
+      })
+      // eslint-disable-next-line no-await-in-loop
+      const { totalUpdated, totalCreated } = await proceedItemFina(data)
 
-    countTotalUpdated += totalUpdated
-    countTotalCreated += totalCreated
+      countTotalUpdated += totalUpdated
+      countTotalCreated += totalCreated
 
-    getLastId = lastId
-    progress += percentage
-    log(
-      `lastId: ${getLastId} | countTotalCreated:${countTotalCreated} | countTotalUpdated:${countTotalUpdated}`,
-    )
-    // eslint-disable-next-line no-await-in-loop
-    await redis.set(
+      getLastId = lastId
+      progress += percentage
+      log(
+        `lastId: ${getLastId} | countTotalCreated:${countTotalCreated} | countTotalUpdated:${countTotalUpdated}`,
+      )
+      // eslint-disable-next-line no-await-in-loop
+      await redis.set(
+        rKey,
+        JSON.stringify({
+          status: 'processing',
+          total,
+          newData: countTotalCreated,
+          updateData: countTotalUpdated,
+          progress,
+        }),
+        'EX',
+        200,
+      )
+    }
+
+    timeEnd()
+    log('DONE!')
+
+    return await redis.set(
       rKey,
       JSON.stringify({
-        status: 'processing',
+        status: 'completed',
         total,
         newData: countTotalCreated,
         updateData: countTotalUpdated,
-        progress,
+        progress: 100,
       }),
       'EX',
       200,
     )
+  } catch (error) {
+    warn('error proceedAsyncItemFina:', error)
+
+    return redis.set(
+      rKey,
+      JSON.stringify({
+        status: 'failed',
+      }),
+      'EX',
+      300,
+    )
   }
-
-  timeEnd()
-  log('DONE!')
-
-  await redis.set(
-    rKey,
-    JSON.stringify({
-      status: 'completed',
-      total,
-      newData: countTotalCreated,
-      updateData: countTotalUpdated,
-      progress: 100,
-    }),
-    'EX',
-    200,
-  )
 }
 
 const SyncMasterItem = async (opt, cache = true, user) => {
@@ -398,7 +404,7 @@ const syncCustomerPerSection = async (body) => {
 const proceedCustomerFina = async (data) => {
   try {
     const ids = data.map((fina) => fina.ID)
-    const existData = await Customer.findWithDeleted({
+    const existData = await SMIModels2.Customer.findWithDeleted({
       customerId: { $in: ids },
     }).lean()
     const promiseCreate = []
@@ -423,7 +429,7 @@ const proceedCustomerFina = async (data) => {
     if (promiseCreate.length) {
       const bulkData = await Promise.all(promiseCreate)
 
-      await Customer.create(bulkData)
+      await SMIModels2.Customer.create(bulkData)
     } else if (promiseUpdate.length) {
       let bulkData = await Promise.all(promiseUpdate)
 
@@ -436,7 +442,7 @@ const proceedCustomerFina = async (data) => {
         }
       })
 
-      Customer.bulkWrite(bulkData)
+      SMIModels2.Customer.bulkWrite(bulkData)
     }
 
     return {
@@ -451,66 +457,79 @@ const proceedCustomerFina = async (data) => {
 }
 
 const processAsyncCustomer = async (user, rKey) => {
-  const token = JwtSign(user, '1h')
+  try {
+    const token = JwtSign(user, '1h')
 
-  const total = await countTotCustomerFina(token)
-  const limit = 500
+    const total = await countTotCustomerFina(token)
+    const limit = 500
 
-  let getLastId = null
-  let countTotalUpdated = 0
-  let countTotalCreated = 0
-  let progress = 0
-  const percentage = 100 / Math.ceil(total / limit)
+    let getLastId = null
+    let countTotalUpdated = 0
+    let countTotalCreated = 0
+    let progress = 0
+    const percentage = 100 / Math.ceil(total / limit)
 
-  time()
-  for (let index = 0; index < Math.ceil(total / limit); index++) {
-    // eslint-disable-next-line no-await-in-loop
-    const { data, lastId } = await syncCustomerPerSection({
-      token,
-      limit,
-      lastId: getLastId,
-    })
-    // eslint-disable-next-line no-await-in-loop
-    const { totalUpdated, totalCreated } = await proceedCustomerFina(data)
+    time()
+    for (let index = 0; index < Math.ceil(total / limit); index++) {
+      // eslint-disable-next-line no-await-in-loop
+      const { data, lastId } = await syncCustomerPerSection({
+        token,
+        limit,
+        lastId: getLastId,
+      })
+      // eslint-disable-next-line no-await-in-loop
+      const { totalUpdated, totalCreated } = await proceedCustomerFina(data)
 
-    countTotalUpdated += totalUpdated
-    countTotalCreated += totalCreated
+      countTotalUpdated += totalUpdated
+      countTotalCreated += totalCreated
 
-    getLastId = lastId
-    progress += percentage
-    log(
-      `lastId: ${getLastId} | countTotalCreated:${countTotalCreated} | countTotalUpdated:${countTotalUpdated}`,
-    )
-    // eslint-disable-next-line no-await-in-loop
-    await redis.set(
+      getLastId = lastId
+      progress += percentage
+      log(
+        `lastId: ${getLastId} | countTotalCreated:${countTotalCreated} | countTotalUpdated:${countTotalUpdated}`,
+      )
+      // eslint-disable-next-line no-await-in-loop
+      await redis.set(
+        rKey,
+        JSON.stringify({
+          status: 'processing',
+          total,
+          newData: countTotalCreated,
+          updateData: countTotalUpdated,
+          progress,
+        }),
+        'EX',
+        200,
+      )
+    }
+
+    timeEnd()
+    log('DONE!')
+
+    return await redis.set(
       rKey,
       JSON.stringify({
-        status: 'processing',
+        status: 'completed',
         total,
         newData: countTotalCreated,
         updateData: countTotalUpdated,
-        progress,
+        progress: 100,
       }),
       'EX',
       200,
     )
+  } catch (error) {
+    warn('error processAsyncCustomer:', error)
+
+    return redis.set(
+      rKey,
+      JSON.stringify({
+        status: 'failed',
+      }),
+      'EX',
+      300,
+    )
   }
-
-  timeEnd()
-  log('DONE!')
-
-  await redis.set(
-    rKey,
-    JSON.stringify({
-      status: 'completed',
-      total,
-      newData: countTotalCreated,
-      updateData: countTotalUpdated,
-      progress: 100,
-    }),
-    'EX',
-    200,
-  )
 }
 
 const SyncMasterCustomer = async (user, cache = true) => {

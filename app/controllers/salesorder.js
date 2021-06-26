@@ -67,7 +67,7 @@ const UpdateSO = async (body) => {
   body = await joi
     .object({
       quoNo: joi.string().required(),
-      attachmentPO: joi.string().optional(),
+      attachmentPO: joi.string().optional().allow(null),
       isConfirm: joi.boolean().required(),
       status: joi.string().default('Processed'),
     })

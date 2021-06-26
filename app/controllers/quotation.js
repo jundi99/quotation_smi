@@ -165,7 +165,8 @@ const GenerateReport = async (customer, newData) => {
 const SendEmailProcessed = (customer, quotation) => {
   const message = `<html>
   Dear Bpk/Ibu ${customer.name}<br>
-  Quotation anda sedang kami proses.
+  Quotation No. ${quotation.quoNo} sedang kami proses, silahkan cek 
+  <a href="http://172.104.181.69/transactions/quotation">link ini</a> untuk melihat statusnya.
   <br><br>Terima Kasih.<br><br>
   Regards, <br>
   ${quotation.salesman.firstName}
@@ -173,7 +174,7 @@ const SendEmailProcessed = (customer, quotation) => {
   const mailOptions = {
     from: 'noreply@smi.com',
     to: customer.email,
-    subject: `Quotation anda No. ${quotation.quoNo} sedang di proses`,
+    subject: `Quotation No. ${quotation.quoNo} sedang di proses`,
     html: message,
   }
 
