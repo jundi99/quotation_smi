@@ -8,11 +8,6 @@ const { STOCK } = require('../../app/constants')
 
 const resolvers = {
   Mutation: {
-    SyncUser(_, args, { user }) {
-      // await ValidateUser(user)
-
-      return fina.SyncMasterUser(user)
-    },
     async SyncItem(_, { cache }, { user }) {
       await ValidateUser(user)
       const schedule = await Schedule.findOne(

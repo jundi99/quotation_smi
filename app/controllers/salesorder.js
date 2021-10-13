@@ -85,13 +85,21 @@ const UpdateSO = async (body) => {
 }
 
 const GenerateCreditLimitPassword = async () => {
+  const dataPassword = await Password.findOne({
+    quoNo: { $exists: false },
+  }).lean()
+
+  if (dataPassword?.password) {
+    return dataPassword?.password
+  }
+  const generateNewPassword = Math.floor(100000 + Math.random() * 900000) // generate 6 digit
   const password = await Password.findOneAndUpdate(
     { quoNo: { $exists: false } },
-    {},
+    { password: generateNewPassword },
     { new: true, upsert: true },
   ).lean()
 
-  return password._id
+  return password.password
 }
 
 const ValidatePasswordCredit = async (body) => {
@@ -99,7 +107,7 @@ const ValidatePasswordCredit = async (body) => {
     .object({
       quoNo: joi.string().required(),
       password: joi
-        .objectId()
+        .string()
         .required()
         .error(() => {
           throw new StandardError('Password yang anda masukkan tidak terdaftar')
@@ -108,8 +116,10 @@ const ValidatePasswordCredit = async (body) => {
     .validateAsync(body)
 
   const data = await Password.findOne({
-    _id: password,
-    $or: [{ quoNo: { $exists: false } }, { quoNo: quoNo }],
+    $or: [
+      { quoNo: { $exists: false }, password },
+      { quoNo: quoNo, password },
+    ],
   })
 
   if (!data) {

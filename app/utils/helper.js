@@ -1,5 +1,5 @@
 const {
-  SMIModels: { ItemCategory, Salesman },
+  SMIModels: { ItemCategory },
 } = require('../daos')
 
 const { USR_EMAIL, PASS_EMAIL } = process.env
@@ -117,13 +117,7 @@ const NewUser = (user) => {
   return newData
 }
 
-const NewCustomer = async (customer) => {
-  const salesman = customer.SALESMANID
-    ? await Salesman.findOne(
-        { salesmanId: customer.SALESMANID },
-        { _id: 1 },
-      ).lean()
-    : {}
+const NewCustomer = (customer) => {
   const userName = customer.EMAIL ? customer.EMAIL : customer.NAME
   const authorizeUser = {
     quotation: { name: 'Quotation', ...CRUD },
@@ -154,7 +148,7 @@ const NewCustomer = async (customer) => {
     note: customer.NOTES,
     outstandingAR: 0,
     priceType: customer.PRICETYPE,
-    salesman: salesman._id,
+    salesman: customer.salesmanId,
     isTax: customer.TAX1ID !== null,
     authorize: authorizeUser,
   }

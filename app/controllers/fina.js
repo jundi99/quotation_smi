@@ -309,40 +309,47 @@ const SyncMasterItem = async (opt, cache = true, user) => {
   }
 }
 
-const SyncMasterUser = async () => {
+const SyncMasterUser = async (req, res) => {
   // const token = JwtSign(user)
-  const dataFina = await fetch(normalizeUrl(`${FINA_SMI_URI}/fina/sync-user`), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // Authorization: `${token}`,
-      bypass: true,
-    },
-  }).catch((err) => {
-    return { fail: true, err }
-  })
+  try {
+    const dataFina = await fetch(
+      normalizeUrl(`${FINA_SMI_URI}/fina/sync-user`),
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Authorization: `${token}`,
+          bypass: true,
+        },
+      },
+    ).catch((err) => {
+      return { fail: true, err }
+    })
 
-  if (dataFina.fail || dataFina.ok === false) {
-    throw new Error(FAIL_SYNC_SERVER)
-  }
+    if (dataFina.fail || dataFina.ok === false) {
+      throw new Error(FAIL_SYNC_SERVER)
+    }
 
-  const { data, total } = await dataFina.json()
-  const ids = data.map((fina) => fina.ID)
-  const existData = await User.find({ userId: { $in: ids } }).lean()
-  const filterDataFinaNotExistsInMongo = data.filter(
-    (fina) => !existData.find((data) => data.userId === fina.ID),
-  )
+    const { data, total } = await dataFina.json()
+    const ids = data.map((fina) => fina.ID)
+    const existData = await User.find({ userId: { $in: ids } }).lean()
+    const filterDataFinaNotExistsInMongo = data.filter(
+      (fina) => !existData.find((data) => data.userId === fina.ID),
+    )
 
-  filterDataFinaNotExistsInMongo.map(async (data) => {
-    const newData = await NewUser(data)
+    filterDataFinaNotExistsInMongo.map(async (data) => {
+      const newData = await NewUser(data)
 
-    return new User(newData).save()
-  })
+      return new User(newData).save()
+    })
 
-  return {
-    total,
-    newData: filterDataFinaNotExistsInMongo.length,
-    message: SUCCESS,
+    res.json({
+      total,
+      newData: filterDataFinaNotExistsInMongo.length,
+      message: SUCCESS,
+    })
+  } catch (error) {
+    res.json({ err: true, message: 'Internal server error', errMessage: error })
   }
 }
 
@@ -409,15 +416,24 @@ const proceedCustomerFina = async (data) => {
     }).lean()
     const promiseCreate = []
     const promiseUpdate = []
-    const updateCustomer = async (dataCust, fina) => {
-      const newData = await NewCustomer(fina)
+    const updateCustomer = (dataCust, fina) => {
+      const newData = NewCustomer(fina)
 
       return _.merge(dataCust, newData)
     }
 
+    const listSalesman = await Salesman.find(
+      {},
+      { _id: 1, salesmanId: 1 },
+    ).lean()
+
     data.map((fina) => {
       const dataCust = existData.find((data) => data.customerId === fina.ID)
+      const salesman = listSalesman.find(
+        (salesman) => salesman.salesmanId === fina.SALESMANID,
+      )
 
+      fina.salesmanId = salesman ? salesman._id : null
       if (dataCust) {
         promiseUpdate.push(updateCustomer(dataCust, fina))
       } else {
@@ -461,7 +477,7 @@ const processAsyncCustomer = async (user, rKey) => {
     const token = JwtSign(user, '1h')
 
     const total = await countTotCustomerFina(token)
-    const limit = 500
+    const limit = 50
 
     let getLastId = null
     let countTotalUpdated = 0

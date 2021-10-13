@@ -18,6 +18,7 @@ const auth = jwt({
   secret: JWT_SECRET,
   credentialsRequired: false,
   algorithms: ['HS256'],
+  expiresIn: '7d',
 })
 const kill = require('kill-port')
 const asyncRedis = require('async-redis')
