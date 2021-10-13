@@ -1,4 +1,5 @@
 # SMI Project
+
 Make sure install all package using npm i
 
 copy env.sample to .env and adjust this environtment according to the needs
