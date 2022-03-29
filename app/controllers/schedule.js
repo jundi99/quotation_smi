@@ -9,6 +9,9 @@ const { STOCK } = require('../constants')
 const { log } = console
 const StandardError = require('../../utils/standard_error')
 const { UpdateStockSupplierXls } = require('./item')
+const { REDIS_URI, REDIS_PORT } = process.env
+const asyncRedis = require('async-redis')
+const redis = asyncRedis.createClient(REDIS_PORT, REDIS_URI)
 
 const autoUpdateStock = async (directRun) => {
   const schedule = await Schedule.findOne({ name: STOCK }).lean()
@@ -32,8 +35,9 @@ const autoUpdateStock = async (directRun) => {
 
   if (directRun) {
     if (options.host) {
-      SyncMasterItem(options, { bypass: true })
+      SyncMasterItem(options, false, { bypass: true })
     } else if (schedule && schedule.fileXLS) {
+      redis.del('syncItem')
       UpdateStockSupplierXls(schedule.fileXLS)
     }
     CheckQuoProceed()
@@ -41,8 +45,9 @@ const autoUpdateStock = async (directRun) => {
   timerId = setInterval(() => {
     log(`${new Date()} | new timer: ${timer}`)
     if (options.host) {
-      SyncMasterItem(options, { bypass: true })
+      SyncMasterItem(options, false, { bypass: true })
     } else if (schedule && schedule.fileXLS) {
+      redis.del('syncItem')
       UpdateStockSupplierXls(schedule.fileXLS)
     }
     CheckQuoProceed()

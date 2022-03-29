@@ -147,13 +147,13 @@ const UpdateUserById = async (userId, body) => {
   user = _.merge(user, body)
   switch (body.profile.userLevel) {
     case 1:
-      body.profile.nameLevel = 'User'
+      user.profile.nameLevel = 'User'
       break
     case 2:
-      body.profile.nameLevel = 'Client'
+      user.profile.nameLevel = 'Client'
       break
     default:
-      body.profile.nameLevel = 'Admin'
+      user.profile.nameLevel = 'Admin'
   }
   const userUpdated = await user.save()
 

@@ -309,8 +309,10 @@ const SyncMasterItem = async (opt, cache = true, user) => {
   }
 }
 
-const SyncMasterUser = async (req, res) => {
-  // const token = JwtSign(user)
+// const SyncMasterUser = async (req, res) => {
+const SyncMasterUser = async (user) => {
+  const token = JwtSign(user)
+
   try {
     const dataFina = await fetch(
       normalizeUrl(`${FINA_SMI_URI}/fina/sync-user`),
@@ -318,7 +320,7 @@ const SyncMasterUser = async (req, res) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Authorization: `${token}`,
+          Authorization: `${token}`,
           bypass: true,
         },
       },
@@ -343,13 +345,19 @@ const SyncMasterUser = async (req, res) => {
       return new User(newData).save()
     })
 
-    res.json({
+    // res.json({
+    //   total,
+    //   newData: filterDataFinaNotExistsInMongo.length,
+    //   message: SUCCESS,
+    // })
+    return {
       total,
       newData: filterDataFinaNotExistsInMongo.length,
       message: SUCCESS,
-    })
+    }
   } catch (error) {
-    res.json({ err: true, message: 'Internal server error', errMessage: error })
+    // res.json({ err: true, message: 'Internal server error', errMessage: error })
+    return { err: true, message: 'Internal server error', errMessage: error }
   }
 }
 
