@@ -1,4 +1,5 @@
 /* eslint-disable max-lines-per-function */
+/* eslint-disable func-names */
 const {
   SMIModels: { Quotation, Customer, Item, RunningNumber, PriceContract },
 } = require('../daos')
@@ -28,7 +29,7 @@ const transporter = nodemailer.createTransport({
   },
 })
 
-const ONE_DAY = 1000 * 60 * 60 * 24
+// const ONE_DAY = 1000 * 60 * 60 * 24
 
 const GetQuotations = async (query) => {
   const {
@@ -270,7 +271,7 @@ const SendEmailReminder = (customer, newData) => {
   message += `</table>
   Sub Total: <b>${formatCurrency(newData.subTotal)} </b><br>
   Nett Total: <b>${formatCurrency(newData.subTotal)} </b><br>   
-  PPN: <b>${formatCurrency(newData.ppn)} </b><br>
+  PPN: <b>${formatCurrency(newData.ppn || 0)} </b><br>
   Grand Total: <b>${formatCurrency(newData.totalOrder)} </b>
   <br><br>Terima Kasih.<br><br>
   Regards, <br>
@@ -444,16 +445,37 @@ const NotifExpireQuotation = async () => {
         salesman: 1,
         subTotal: 1,
         totalOrder: 1,
-        daySince: {
-          $trunc: {
-            $divide: [{ $subtract: [new Date(), '$createdAt'] }, ONE_DAY],
+        workingDay: {
+          $function: {
+            body: function (createdAt) {
+              const milliSecondBetweenDate = Math.abs(
+                new Date().getTime() - createdAt.getTime(),
+              )
+              const DayInMiliSeconds = 1000 * 60 * 60 * 24
+              const totalDay = Math.trunc(
+                milliSecondBetweenDate / DayInMiliSeconds,
+              )
+              let countWeekend = 4
+
+              if (
+                createdAt.getDay() === 3 ||
+                createdAt.getDay() === 4 ||
+                createdAt.getDay() === 5
+              ) {
+                countWeekend = 6
+              }
+
+              return totalDay - countWeekend
+            },
+            args: ['$createdAt'],
+            lang: 'js',
           },
         },
       },
     },
     {
       $match: {
-        daySince: { $gte: 11 },
+        workingDay: { $gte: 11 },
         status: { $ne: CLOSED },
         isRemindExpire: false,
       },
@@ -477,9 +499,43 @@ const CheckQuotationExpired = async () => {
   const quotationExpires = await Quotation.aggregate([
     {
       $project: {
-        daySince: {
-          $trunc: {
-            $divide: [{ $subtract: [new Date(), '$createdAt'] }, ONE_DAY],
+        // daySince: {
+        //   $trunc: {
+        //     $divide: [{ $subtract: [new Date(), '$createdAt'] }, ONE_DAY],
+        //   },
+        // },
+        // Perhitungan 4 dan 6 hari berdasarkan dibawah ini.
+        // senin: 2 minggu, minggu ke 3 sampe kamis (4day weekend)
+        // selasa: 2 minggu, minggu ke 3 sampe jum'at (4day weekend)
+        // rabu: rabu, kamis, jum'at, 1 minggu, 1 minggu, senin (6day weekend)
+        // kamis: kamis, jum'at, 2 minggu, selasa (6day weekend)
+        // jum'at: jum'at, 2 minggu, rabu (6day weekend)
+        // sabtu & minggu 4 day weekend
+        // jadi getDay() 3, 4, 5 / rabu, kamis, jum'at 6 hari liburnya
+        workingDay: {
+          $function: {
+            body: function (createdAt) {
+              const milliSecondBetweenDate = Math.abs(
+                new Date().getTime() - createdAt.getTime(),
+              )
+              const DayInMiliSeconds = 1000 * 60 * 60 * 24
+              const totalDay = Math.trunc(
+                milliSecondBetweenDate / DayInMiliSeconds,
+              )
+              let countWeekend = 4
+
+              if (
+                createdAt.getDay() === 3 ||
+                createdAt.getDay() === 4 ||
+                createdAt.getDay() === 5
+              ) {
+                countWeekend = 6
+              }
+
+              return totalDay - countWeekend
+            },
+            args: ['$createdAt'],
+            lang: 'js',
           },
         },
       },
