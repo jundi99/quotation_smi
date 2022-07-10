@@ -405,7 +405,9 @@ const GetQuotation = async (body) => {
       quoNo: joi.string().required(),
     })
     .validateAsync(body)
-  const quotation = await Quotation.findOne({ quoNo }).lean()
+  const quotation = await Quotation.findOne({ quoNo })
+    .deepPopulate(['salesman'])
+    .lean()
   const data = await Customer.findOne(
     { personNo: quotation.personNo },
     { name: 1 },
@@ -486,7 +488,9 @@ const NotifExpireQuotation = async () => {
       personNo: quo.personNo,
     }).lean()
 
-    SendEmailReminder(customer, quo)
+    if (customer) {
+      SendEmailReminder(customer, quo)
+    }
   }
   const doPromises = []
 
@@ -567,53 +571,55 @@ const BuyItemQuoAgain = async (quoNo) => {
   )
     .deepPopulate(['category'])
     .lean()
-
-  let priceContracts = await PriceContract.find(
+  const itemNos = quotation.detail.map((quo) => quo.itemNo)
+  let priceContracts = await PriceContract.aggregate([
     {
-      isContract: true,
-      startAt: { $lte: new Date() },
-      endAt: { $gte: new Date() },
-      $or: [
-        { personNos: quotation.personNo },
-        {
+      $match: {
+        isContract: true,
+        startAt: { $lte: new Date() },
+        endAt: { $gte: new Date() },
+        $or: [
+          { personNos: quotation.personNo },
+          {
+            priceType:
+              categoryCust && categoryCust.category
+                ? categoryCust.category.name
+                : 'NA',
+          },
+        ],
+      },
+    },
+    { $project: { details: 1 } },
+    { $unwind: '$details' },
+    { $replaceRoot: { newRoot: '$details' } },
+    { $match: { itemNo: { $in: itemNos } } },
+  ])
+
+  if (priceContracts.length === 0) {
+    priceContracts = await PriceContract.aggregate([
+      {
+        $match: {
+          isContract: false,
+          startAt: { $lte: new Date() },
+          endAt: { $gte: new Date() },
           priceType:
             categoryCust && categoryCust.category
               ? categoryCust.category.name
               : 'NA',
         },
-      ],
-    },
-    { details: 1 },
-  )
-    .sort({ _id: -1 })
-    .lean()
-
-  if (priceContracts.length === 0) {
-    priceContracts = await PriceContract.find(
-      {
-        isContract: false,
-        startAt: { $lte: new Date() },
-        endAt: { $gte: new Date() },
-        priceType:
-          categoryCust && categoryCust.category
-            ? categoryCust.category.name
-            : 'NA',
       },
-      { details: 1 },
-    )
-      .sort({ _id: -1 })
-      .lean()
+      { $project: { details: 1 } },
+      { $unwind: '$details' },
+      { $replaceRoot: { newRoot: '$details' } },
+      { $match: { itemNo: { $in: itemNos } } },
+    ])
   }
-  const detailItemQuo = quotation.detail.map((quo) => quo.itemNo)
-  let items = await Item.find({ itemNo: { $in: detailItemQuo } }).lean()
 
-  const allPriceContracts = []
-
-  priceContracts.map((pc) => allPriceContracts.push(...pc.details))
+  let items = await Item.find({ itemNo: { $in: itemNos } }).lean()
 
   items = items.map((item) => {
-    const pricefromContract = allPriceContracts
-      ? allPriceContracts
+    const pricefromContract = priceContracts
+      ? priceContracts
           .filter((pc) => pc.itemNo === item.itemNo)
           .sort((a, b) => {
             return a.lessQty ? a.lessQty - b.lessQty : 0 // asc

@@ -7,7 +7,8 @@
     "reinstall": "rm -rf node_modules package-lock.json && npm i",
     "codelint": "npx eslint -f table --fix .",
     "checklint": "npx eslint -f table .",
-    "codeformat": "npx prettier --write ."
+    "codeformat": "npx prettier --write .",
+    "cleancode": "npm run codelint && npm run codeformat"
   },
   "prettier": "./prettier",
   "husky": {
@@ -26,7 +27,7 @@
     "crypto": "^1.0.1",
     "debug": "~2.6.9",
     "dotenv": "^8.2.0",
-    "ejs": "^3.1.6",
+    "ejs": "^3.1.8",
     "express": "^4.16.4",
     "express-graphql": "^0.11.0",
     "express-jwt": "^6.0.0",
@@ -42,7 +43,7 @@
     "jsonwebtoken": "^8.5.1",
     "kill-port": "^1.6.1",
     "lodash": "^4.17.20",
-    "moment": "^2.29.1",
+    "moment": "^2.29.4",
     "mongodb": "^3.6.2",
     "mongoose": "^5.10.10",
     "mongoose-deep-populate": "^3.2.0",
@@ -59,7 +60,7 @@
   "devDependencies": {
     "eslint": "^7.11.0",
     "husky": "^4.3.0",
-    "nodemon": "^2.0.7",
+    "nodemon": "^2.0.19",
     "prettier": "2.1.2"
   }
 }

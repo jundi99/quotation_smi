@@ -55,57 +55,57 @@ const GetItemsQuo = async (query, user) => {
     .deepPopulate(['category'])
     .lean()
 
-  let priceContracts = await PriceContract.find(
+  const itemNos = items.map((item) => item.itemNo)
+  let priceContracts = await PriceContract.aggregate([
     {
-      isContract: true,
-      startAt: { $lte: new Date() },
-      endAt: { $gte: new Date() },
-      $or: [
-        { personNos: personNo ? personNo : user.personNo },
-        {
-          priceType:
-            categoryCust && categoryCust.category
-              ? categoryCust.category.name
-              : 'NA',
-        },
-      ],
-    },
-    { details: 1 },
-  )
-    .sort({ _id: -1 })
-    .lean()
-
-  if (priceContracts.length === 0) {
-    priceContracts = await PriceContract.find(
-      {
-        isContract: false,
+      $match: {
+        isContract: true,
         startAt: { $lte: new Date() },
         endAt: { $gte: new Date() },
-        priceType:
-          categoryCust && categoryCust.category
-            ? categoryCust.category.name
-            : 'NA',
+        $or: [
+          { personNos: personNo ? personNo : user.personNo },
+          {
+            priceType: categoryCust?.category
+              ? categoryCust.category?.name
+              : 'NA',
+          },
+        ],
       },
-      { details: 1 },
-    )
-      .sort({ _id: -1 })
-      .lean()
+    },
+    { $project: { details: 1 } },
+    { $unwind: '$details' },
+    { $replaceRoot: { newRoot: '$details' } },
+    { $match: { itemNo: { $in: itemNos } } },
+  ])
+
+  if (priceContracts.length === 0) {
+    priceContracts = await PriceContract.aggregate([
+      {
+        $match: {
+          isContract: false,
+          startAt: { $lte: new Date() },
+          endAt: { $gte: new Date() },
+          priceType: categoryCust?.category ? categoryCust.category.name : 'NA',
+        },
+      },
+      { $project: { details: 1 } },
+      { $unwind: '$details' },
+      { $replaceRoot: { newRoot: '$details' } },
+      { $match: { itemNo: { $in: itemNos } } },
+    ])
   }
 
-  const allPriceContracts = []
-
-  priceContracts.map((pc) => allPriceContracts.push(...pc.details))
-
   items = items.map((item) => {
-    const pricefromContract = allPriceContracts.length
-      ? allPriceContracts
+    const pricefromContract = priceContracts.length
+      ? priceContracts
           .filter((pc) => pc.itemNo === item.itemNo)
           .sort((a, b) => {
             return a.lessQty ? a.lessQty - b.lessQty : 0 // asc
           })
       : false
 
-    if (pricefromContract.length) {
+    if (pricefromContract?.length) {
+      // if exist will per item
       item.price = pricefromContract[0].sellPrice
       item.priceContracts = pricefromContract.sort((a, b) => {
         return a.lessQty ? b.lessQty - a.lessQty : 0 // desc

@@ -1,6 +1,7 @@
 const {
   SMIModels: { ItemCategory },
 } = require('../daos')
+const { log } = console
 
 const { USR_EMAIL, PASS_EMAIL } = process.env
 const nodemailer = require('nodemailer')
@@ -20,6 +21,9 @@ const NewItem = async (data) => {
       { categoryId: data.CATEGORYID },
       { _id: 1 },
     ).lean()
+    if (!category) {
+      log(data)
+    }
   }
 
   const newData = {
@@ -53,7 +57,7 @@ const NewItem = async (data) => {
       heigth: data.DIMHEIGHT,
       depth: data.DIMDEPTH,
     },
-    category: category._id,
+    category: category?._id,
 
     stockSMI: data.STOCKSMI,
   }

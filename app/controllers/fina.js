@@ -669,26 +669,12 @@ const GetItems = async (query, user) => {
     })
     .validateAsync(query)
 
-  let queryItem = {
+  const queryItem = {
     ...(category ? { category } : {}),
     ...(itemNo ? { itemNo: new RegExp(itemNo, 'gi') } : {}),
     ...(name ? { name: new RegExp(name, 'gi') } : {}),
   }
-
-  if (priceType) {
-    const [items] = await PriceContract.aggregate([
-      { $match: { deleted: false, priceType } },
-      { $project: { details: 1 } },
-      { $unwind: '$details' },
-      { $sort: { 'details.itemNo': 1 } },
-      { $group: { _id: '$details.itemNo' } },
-      { $group: { _id: null, items: { $push: '$_id' } } },
-    ])
-
-    queryItem = { ...queryItem, itemNo: { $in: items ? items.items : [] } }
-  }
-
-  const items = await Item.find(queryItem)
+  const listItem = await Item.find(queryItem)
     .sort({ _id: -1 })
     .skip(skip * limit)
     .limit(limit)
@@ -725,21 +711,27 @@ const GetItems = async (query, user) => {
   if (sumData !== itemCount) {
     differentData = Math.abs(sumData - itemCount)
   }
-
-  listPack = await PriceContract.aggregate([
-    { $match: { deleted: false } },
+  const itemNos = listItem.map((item) => item.itemNo)
+  const listPack = await PriceContract.aggregate([
+    {
+      $match: {
+        deleted: false,
+        ...(priceType ? { priceType } : {}),
+      },
+    },
     { $project: { details: 1 } },
     { $unwind: '$details' },
-    { $sort: { 'details.itemNo': 1 } },
     {
       $group: {
         _id: '$details.itemNo',
         qtyPack: { $first: '$details.qtyPack' },
       },
     },
+    { $match: { _id: { $in: itemNos } } },
+    { $sort: { _id: 1 } },
   ])
 
-  items.map((item) => {
+  listItem.map((item) => {
     const pack = listPack.find((value) => value._id === item.itemNo)
 
     item.qtyPack = pack ? pack.qtyPack : 'NA'
@@ -757,7 +749,7 @@ const GetItems = async (query, user) => {
     return item
   })
 
-  return { items, differentData, message: SUCCESS, total: itemCount }
+  return { items: listItem, differentData, message: SUCCESS, total: itemCount }
 }
 
 const GetLimitCustomer = async (user, body) => {

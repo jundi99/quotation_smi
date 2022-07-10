@@ -14,7 +14,7 @@ const GetPriceContracts = async (query) => {
     })
     .validateAsync(query)
   const [priceContracts, total] = await Promise.all([
-    PriceContract.find({})
+    PriceContract.find({}, { details: { $slice: [0, 10] } }) // must filter array of details, because performance issue
       .sort({ priceConNo: -1 })
       .skip(skip * limit)
       .limit(limit)
@@ -31,7 +31,10 @@ const GetPriceContract = async (body) => {
       priceConNo: joi.string().required(),
     })
     .validateAsync(body)
-  const priceContract = await PriceContract.findOne({ priceConNo }).lean()
+  const priceContract = await PriceContract.findOne(
+    { priceConNo },
+    { details: { $slice: [0, 10] } },
+  ).lean()
 
   if (priceContract) {
     let customers = await Customer.find(
@@ -103,7 +106,7 @@ const UpsertPriceContract = async (body) => {
     })
     .validateAsync(body)
   const { priceConNo } = body
-  let newData = await PriceContract.findOne({ priceConNo })
+  let newData = await PriceContract.findOne({ priceConNo }, { details: 0 })
   const details = body.details.map((det) => {
     if (det.equalQty > 0) {
       det.lessQty = null
