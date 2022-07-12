@@ -174,32 +174,6 @@ const UpsertCustCategory = async (body) => {
   return newData
 }
 
-const GetSalesmen = async (query) => {
-  const { skip, limit, q } = await joi
-    .object({
-      q: joi.string().optional(),
-      skip: joi.number().min(0).default(0),
-      limit: joi.number().min(1).default(25),
-    })
-    .validateAsync(query)
-
-  const [salesmen, total] = await Promise.all([
-    Salesman.find({
-      $or: [
-        { lastName: new RegExp(q, 'gi') },
-        { firstName: new RegExp(q, 'gi') },
-      ],
-    })
-      .sort({ salesmanId: 1 })
-      .skip(skip * limit)
-      .limit(limit)
-      .lean(),
-    Salesman.countDocuments(),
-  ])
-
-  return { salesmen, total }
-}
-
 const GetCustCategories = () => CustCategory.find({}).lean()
 
 module.exports = {
@@ -208,6 +182,5 @@ module.exports = {
   UpsertCustomer,
   DeleteCustomer,
   UpsertCustCategory,
-  GetSalesmen,
   GetCustCategories,
 }

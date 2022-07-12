@@ -88,6 +88,7 @@ const GetQuotations = async (query) => {
       ).lean()
 
       quo.customerName = data ? data.name : 'NA'
+      quo.customerEmail = data ? data.email : 'NA'
 
       return quo
     }),

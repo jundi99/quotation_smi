@@ -69,12 +69,6 @@ module.exports = `
     personNo: String
   }
 
-  input GetMasterInput {
-    q: String
-    skip: Int
-    limit: Int
-  }  
-
   input GetLimitCustomerInput {
     personNo: String!
   }
@@ -86,14 +80,9 @@ module.exports = `
     message: String
   }
 
-  type GetSalesmenResponse {
-    salesmen: [Salesman]
-    total: Int
-  }
   type Query {
     GetCustomers(input: GetCustomersInput): GetCustomersResponse
     GetCustomer(input: PersonNoInput): Customer
-    GetSalesmen(input: GetMasterInput): GetSalesmenResponse
     GetCustCategories: [CustCategory]
     GetLimitCustomer(input: GetLimitCustomerInput): GetLimitCustomerResponse
   }

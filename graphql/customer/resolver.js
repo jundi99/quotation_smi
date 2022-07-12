@@ -15,11 +15,6 @@ const resolvers = {
 
       return customer.GetCustomer(input)
     },
-    async GetSalesmen(_, { input }, { user }) {
-      await ValidateUser(user)
-
-      return customer.GetSalesmen(input)
-    },
     async GetCustCategories(_, input, { user }) {
       await ValidateUser(user)
 

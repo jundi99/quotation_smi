@@ -38,7 +38,8 @@ module.exports = `
 
   type QuoList {
     ${module.exports.Quotation}    
-    customerName: String    
+    customerName: String
+    customerEmail: String    
   }
   type GetQuotationsResponse {
     quotations: [QuoList]
