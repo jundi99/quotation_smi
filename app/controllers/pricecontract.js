@@ -26,14 +26,16 @@ const GetPriceContracts = async (query) => {
 }
 
 const GetPriceContract = async (body) => {
-  const { priceConNo } = await joi
+  const { priceConNo, skip, limit } = await joi
     .object({
       priceConNo: joi.string().required(),
+      skip: joi.number().min(0).default(0),
+      limit: joi.number().min(1).default(10),
     })
     .validateAsync(body)
   const priceContract = await PriceContract.findOne(
     { priceConNo },
-    { details: { $slice: [0, 10] } },
+    { details: { $slice: [skip, limit] } },
   ).lean()
 
   if (priceContract) {

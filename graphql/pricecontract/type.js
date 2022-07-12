@@ -45,6 +45,8 @@ module.exports = `
 
   input idPriceContractInput {
     priceConNo: ID
+    skip: Int
+    limit: Int    
   }
 
   type Query {

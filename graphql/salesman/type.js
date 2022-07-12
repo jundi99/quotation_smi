@@ -3,6 +3,7 @@ module.exports.Salesman = `
   salesmanId: Int
   firstName: String
   lastName: String
+  emailCC: String
 `
 
 module.exports = `

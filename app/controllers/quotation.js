@@ -176,6 +176,7 @@ const SendEmailProcessed = (customer, quotation) => {
     from: 'noreply@smi.com',
     to: customer.email,
     subject: `Quotation No. ${quotation.quoNo} sedang di proses`,
+    cc: quotation.salesman?.emailCC ? quotation.salesman.emailCC : '',
     html: message,
   }
 
@@ -216,6 +217,7 @@ const SendRecapEmailQuo = async (customer, newData) => {
         content: await GenerateReport(customer, newData),
       },
     ],
+    cc: newData.salesman?.emailCC ? newData.salesman.emailCC : '',
   }
 
   transporter.sendMail(mailOptions, (error, info) => {
@@ -281,6 +283,7 @@ const SendEmailReminder = (customer, newData) => {
     from: 'noreply@smi.com',
     to: customer.email,
     subject: `Quotation anda No. ${newData.quoNo} akan kadaluarsa 3 hari lagi!`,
+    cc: newData.salesman?.emailCC ? newData.salesman.emailCC : '',
     html: message,
   }
 
