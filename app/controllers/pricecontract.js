@@ -35,7 +35,7 @@ const GetPriceContract = async (body) => {
     .validateAsync(body)
   const priceContract = await PriceContract.findOne(
     { priceConNo },
-    { details: { $slice: [skip, limit] } },
+    { details: { $slice: [skip * limit, limit] } },
   ).lean()
 
   const totalData = await PriceContract.aggregate([
