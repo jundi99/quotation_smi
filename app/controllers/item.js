@@ -59,6 +59,7 @@ const GetItemsQuo = async (query, user) => {
   let priceContracts = await PriceContract.aggregate([
     {
       $match: {
+        deleted: false,
         isContract: true,
         startAt: { $lte: new Date() },
         endAt: { $gte: new Date() },
@@ -82,6 +83,7 @@ const GetItemsQuo = async (query, user) => {
     priceContracts = await PriceContract.aggregate([
       {
         $match: {
+          deleted: false,
           isContract: false,
           startAt: { $lte: new Date() },
           endAt: { $gte: new Date() },

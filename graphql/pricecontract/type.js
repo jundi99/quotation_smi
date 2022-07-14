@@ -31,6 +31,7 @@ module.exports = `
     ${module.exports.PriceContract}
     details: [DetailContract]    
     customers: [DetailCustomer]
+    total: Int
   }
 
   input GetPriceContractsInput {

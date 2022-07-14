@@ -41,6 +41,7 @@ module.exports = `
     customerName: String
     customerEmail: String    
   }
+  
   type GetQuotationsResponse {
     quotations: [QuoList]
     total: Int

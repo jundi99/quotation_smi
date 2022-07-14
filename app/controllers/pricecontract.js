@@ -38,6 +38,20 @@ const GetPriceContract = async (body) => {
     { details: { $slice: [skip, limit] } },
   ).lean()
 
+  const totalData = await PriceContract.aggregate([
+    {
+      $match: {
+        priceConNo,
+        deleted: false,
+      },
+    },
+    {
+      $project: {
+        totalDetailPriceContract: { $size: '$details' },
+      },
+    },
+  ])
+
   if (priceContract) {
     let customers = await Customer.find(
       { personNo: { $in: priceContract.personNos } },
@@ -52,6 +66,8 @@ const GetPriceContract = async (body) => {
 
     priceContract.customers = customers
   }
+
+  priceContract.total = totalData[0]?.totalDetailPriceContract || 0
 
   return priceContract
 }

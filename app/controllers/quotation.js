@@ -84,7 +84,7 @@ const GetQuotations = async (query) => {
     quotations.map(async (quo) => {
       const data = await Customer.findOne(
         { personNo: quo.personNo },
-        { name: 1 },
+        { name: 1, email: 1 },
       ).lean()
 
       quo.customerName = data ? data.name : 'NA'
@@ -425,6 +425,13 @@ const GetQuotation = async (body) => {
 const NotifExpireQuotation = async () => {
   const quoAlmostExpires = await Quotation.aggregate([
     {
+      $match: {
+        deleted: false,
+        status: { $ne: CLOSED },
+        isRemindExpire: false,
+      },
+    },
+    {
       $lookup: {
         from: 'salesmen',
         localField: 'salesman',
@@ -482,8 +489,6 @@ const NotifExpireQuotation = async () => {
     {
       $match: {
         workingDay: { $gte: 11 },
-        status: { $ne: CLOSED },
-        isRemindExpire: false,
       },
     },
   ])
@@ -505,6 +510,7 @@ const NotifExpireQuotation = async () => {
 
 const CheckQuotationExpired = async () => {
   const quotationExpires = await Quotation.aggregate([
+    { $match: { deleted: false } },
     {
       $project: {
         // daySince: {
@@ -548,7 +554,7 @@ const CheckQuotationExpired = async () => {
         },
       },
     },
-    { $match: { daySince: { $gte: 14 } } },
+    { $match: { workingDay: { $gte: 14 } } },
   ])
   const doPromises = []
 
@@ -579,6 +585,7 @@ const BuyItemQuoAgain = async (quoNo) => {
   let priceContracts = await PriceContract.aggregate([
     {
       $match: {
+        deleted: false,
         isContract: true,
         startAt: { $lte: new Date() },
         endAt: { $gte: new Date() },
@@ -603,6 +610,7 @@ const BuyItemQuoAgain = async (quoNo) => {
     priceContracts = await PriceContract.aggregate([
       {
         $match: {
+          deleted: false,
           isContract: false,
           startAt: { $lte: new Date() },
           endAt: { $gte: new Date() },
