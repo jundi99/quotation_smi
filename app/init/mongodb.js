@@ -43,30 +43,13 @@ const SMIDBConn = connect({
   },
 })
 
-const SMIDBConn2 = connect({
-  url: NODE_ENV === 'test' ? TEST_MONGO_URI : SMI_MONGO_URI,
-  name: 'SMI 2',
-  config: {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    keepAlive: 1,
-    autoIndex: false,
-    useFindAndModify: false,
-    poolSize: 500,
-  },
-})
-
 process.on('SIGINT', () => {
   log('\nDisconnecting mongo connection...')
   SMIDBConn.close().then(() => {
     log('SMI mongodb connection terminated')
   })
-  SMIDBConn2.close().then(() => {
-    log('SMI mongodb 2 connection terminated')
-  })
 })
 
 module.exports = {
   SMIDBConn,
-  SMIDBConn2,
 }

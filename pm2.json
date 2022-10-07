@@ -3,7 +3,7 @@
     {
       "name": "quotation-smi",
       "script": "index.js",
-      "log_date_format": "YYYY-MM-DD HH:mm Z",
+      "log_date_format": "YYYY-MM-DD HH:mm:ss",
       "instances": "2",
       "exec_mode": "cluster",
       "env_development": {

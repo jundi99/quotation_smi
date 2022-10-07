@@ -5,8 +5,7 @@ const normalizeUrl = require('normalize-url')
 const { JwtSign } = require('../utils')
 const { NewItem, NewUser, NewCustomer } = require('../utils/helper')
 const {
-  SMIModels: { User, Item, ItemCategory, Salesman, Quotation, PriceContract },
-  SMIModels2,
+  SMIModels: { User, Item, ItemCategory, Salesman, Quotation, PriceContract, Customer },
 } = require('../daos')
 const joi = require('joi')
 const {
@@ -133,7 +132,7 @@ const countTotItemFina = async (token) => {
 const proceedItemFina = async (data) => {
   try {
     const ids = data.map((fina) => fina.ITEMNO)
-    const dataItemQuo = await SMIModels2.Item.findWithDeleted({
+    const dataItemQuo = await Item.findWithDeleted({
       itemNo: { $in: ids },
     }).lean()
     const promiseUpdate = []
@@ -156,7 +155,7 @@ const proceedItemFina = async (data) => {
     if (promiseCreate.length) {
       const bulkData = await Promise.all(promiseCreate)
 
-      await SMIModels2.Item.create(bulkData)
+      await Item.create(bulkData)
     } else if (promiseUpdate.length) {
       let bulkData = await Promise.all(promiseUpdate)
 
@@ -169,7 +168,7 @@ const proceedItemFina = async (data) => {
         }
       })
 
-      SMIModels2.Item.bulkWrite(bulkData)
+      Item.bulkWrite(bulkData)
     }
 
     return {
@@ -419,7 +418,7 @@ const syncCustomerPerSection = async (body) => {
 const proceedCustomerFina = async (data) => {
   try {
     const ids = data.map((fina) => fina.ID)
-    const existData = await SMIModels2.Customer.findWithDeleted({
+    const existData = await Customer.findWithDeleted({
       customerId: { $in: ids },
     }).lean()
     const promiseCreate = []
@@ -453,7 +452,7 @@ const proceedCustomerFina = async (data) => {
     if (promiseCreate.length) {
       const bulkData = await Promise.all(promiseCreate)
 
-      await SMIModels2.Customer.create(bulkData)
+      await Customer.create(bulkData)
     } else if (promiseUpdate.length) {
       let bulkData = await Promise.all(promiseUpdate)
 
@@ -466,7 +465,7 @@ const proceedCustomerFina = async (data) => {
         }
       })
 
-      SMIModels2.Customer.bulkWrite(bulkData)
+      Customer.bulkWrite(bulkData)
     }
 
     return {
@@ -690,6 +689,7 @@ const GetItems = async (query, user) => {
         'Content-Type': 'application/json',
         ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
       },
+      timeout: 10000
     },
   ).catch((err) => {
     return { fail: true, err }
@@ -833,6 +833,7 @@ const GetListWarehouse = async (user) => {
         'Content-Type': 'application/json',
         ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
       },
+      timeout: 30000
     },
   ).catch((err) => {
     return { fail: true, err }
