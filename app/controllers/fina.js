@@ -5,7 +5,15 @@ const normalizeUrl = require('normalize-url')
 const { JwtSign } = require('../utils')
 const { NewItem, NewUser, NewCustomer } = require('../utils/helper')
 const {
-  SMIModels: { User, Item, ItemCategory, Salesman, Quotation, PriceContract, Customer },
+  SMIModels: {
+    User,
+    Item,
+    ItemCategory,
+    Salesman,
+    Quotation,
+    PriceContract,
+    Customer,
+  },
 } = require('../daos')
 const joi = require('joi')
 const {
@@ -689,7 +697,7 @@ const GetItems = async (query, user) => {
         'Content-Type': 'application/json',
         ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
       },
-      timeout: 10000
+      timeout: 10000,
     },
   ).catch((err) => {
     return { fail: true, err }
@@ -833,7 +841,7 @@ const GetListWarehouse = async (user) => {
         'Content-Type': 'application/json',
         ...(user.bypass ? { bypass: true } : { Authorization: `${token}` }),
       },
-      timeout: 30000
+      timeout: 30000,
     },
   ).catch((err) => {
     return { fail: true, err }
